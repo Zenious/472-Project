@@ -1,6 +1,7 @@
 #!/bin/python
 
 import sys
+import copy 
 
 class Cell():
     def __init__(self, number):
@@ -9,12 +10,14 @@ class Cell():
         self.color = None
         self.symbol = None
         self.link = None
+        self.variant = None
 
-    def fill(self, color, symbol, link):
+    def fill(self, color, symbol, link, variant):
         self.occupied = True
         self.color = color
         self.symbol = symbol
         self.link = link
+        self.variant = variant
 
     def get_symbol(self):
         if self.symbol is None:
@@ -33,21 +36,30 @@ class Cell():
         if diff == -8:
             return "down"
 
+    def clear(self):
+        self.occupied = False
+        self.color = None
+        self.symbol = None
+        self.link = None
+        self.variant = None
+
 class DoubleCard():
+
     def __init__(self):
+        self.init_board()
         self.turn = 0
+        self.prev_board = []
 
     def letter_to_int(self, move):
         letter_map = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7}
         return letter_map[move]
     
-    def __init__(self):
-        self.init_board()
-
     def start(self):
         self.first_load()
-        while True:
+        while self.turn <60:
             self.command_parser()
+            self.prev_board = copy.deepcopy(self.board)
+        print("Game End with Draw")
 
     def first_load(self):
         print("Welcome Double Card Game!")
@@ -61,25 +73,57 @@ class DoubleCard():
             print("Regular Move")
             if len(parsed_command) != 4:
                 print("Invalid Move!")
-            start_cell = self.letter_to_int(parsed_command[2]) + (int(parsed_command[3])-1)*8
-            self.place_card(int(parsed_command[1]), start_cell)
+            if self.turn >= 24:
+                print("Cannot use Regular Moves!")
+            else:
+                start_cell = self.letter_to_int(parsed_command[2]) + (int(parsed_command[3])-1)*8
+                self.place_card(int(parsed_command[1]), start_cell)
         else:
-            if len(parsed_command) != 7:
+            if len(parsed_command) != 7 or self.turn <24:
                 print("Invalid Move!")
             print("Recycling Move")
-        
-        print ("Your Move was {}".format(command))
+            start_cell = self.letter_to_int(parsed_command[0]) + (int(parsed_command[1])-1)*8
+            neighbour_cell = self.letter_to_int(parsed_command[2]) + (int(parsed_command[3])-1)*8
+            new_cell = self.letter_to_int(parsed_command[5]) + (int(parsed_command[6])-1)*8
+            self.remove_card(start_cell, neighbour_cell)
+            self.place_card(int(parsed_command[4]), new_cell)
+            # check if previously occupied cell causing board to be illegal
+            for cell in [start_cell, neighbour_cell]:
+                if cell+8 < 8*12:
+                    if self.board[cell+8].occupied:
+                        self.illegal_move()
+
+        print ("Turn {}: Your Move was {}".format(self.turn, command))
         self.print_board()
 
     def check_win(self, cell_num):
         # won't work for recycling moves
         directions =['down', 'left', 'right', 'diag-left', 'diag-right']
+        wins = [0,0,0,0]
         for direction in directions:
             x = self.tabulate(cell_num, direction)
-            if 4 in x:
-                print("win")
-                exit()
+            for y,z in enumerate(x):
+                if z == 4 :
+                    print("Possible win with {}".format(y))
+                    wins[y] = 1
+        return wins
 
+    def remove_card(self, start_cell, neighbour_cell):
+        # check if cells are linked
+        c1 = self.board[start_cell]
+        c2 = self.board[neighbour_cell]
+        print (c1.id)
+        print (c2.id)
+        if c1.link == c2.id and c2.link == c1.id:
+            c1.clear()
+            c2.clear()
+        else:
+            self.illegal_move()
+            return
+
+    def illegal_move(self):
+        print("Illegal Move!")
+        self.board = copy.deepcopy(self.prev_board)
 
     def tabulate(self, cell_num, direction):
         # won't work for recycling moves
@@ -118,25 +162,26 @@ class DoubleCard():
             elif curr_cell.symbol is 'X':
                 cross += 1 
         print (red, white, circle, cross, direction)
-        return (red, white, circle, cross)
+        return [red, white, circle, cross]
 
 
     def place_card(self, variant, start_cell):
         neighbour_cell = start_cell+1 if variant%2 == 1 else start_cell+8
         if self.check_illegal(start_cell, neighbour_cell):
-            print("Illegal Move!")
+            self.illegal_move()
             return
         color = 'Red' if variant in [1,4,5,8] else 'White'
-        symbol = 'X' if variant in [1,4,6,7] else 'O'
+        symbol = 'O' if variant in [2,3,5,8] else 'X'
 
         def opp_color(color):
             return 'White' if color is 'Red' else 'Red'
 
         def opp_symbol(symbol):
-            return 'X' if symbol is 'O' else 'X'
+            return 'X' if symbol is 'O' else 'O'
 
-        self.board[start_cell].fill(color, symbol, neighbour_cell)
-        self.board[neighbour_cell].fill(opp_color(color), opp_symbol(symbol), start_cell)
+        self.board[start_cell].fill(color, symbol, neighbour_cell, variant)
+        self.board[neighbour_cell].fill(opp_color(color), opp_symbol(symbol), start_cell, variant)
+        self.turn += 1
         # if variant is 1:
         #     self.board[start_cell].fill("Red", "X")
         #     self.board[neighbour_cell].fill("White", "O")
@@ -161,7 +206,32 @@ class DoubleCard():
         # if variant is 8:
         #     self.board[start_cell].fill("Red", "O")
         #     self.board[neighbour_cell].fill("White", "X")
-        self.check_win(start_cell)
+        wins = self.check_win(start_cell)
+        wins.extend(self.check_win(neighbour_cell))
+        self.who_win(wins)
+
+    def who_win(self, result):
+        player = self.turn % 2
+        # player 1 win with Red and X
+        # player 2 win with White and O
+        print(result)
+        player1_win = False
+        player2_win = False
+
+        win_cases = [i for i, x in enumerate(result) if x == 1]
+        if [i for i in [0,3,4,7] if i in win_cases]:
+            player1_win = True
+        if [i for i in [1,2,5,6] if i in win_cases]:
+            player2_win = True
+        if player1_win and player1_win:
+            print("Player {} wins".format(player))
+        elif player1_win:
+            print("Player 1 wins")
+        elif player2_win:
+            print("Player 2 wins")
+        if player2_win or player1_win:
+            self.print_board()
+            exit()
 
     def init_board(self):
         # init 12x8 board
@@ -181,7 +251,7 @@ class DoubleCard():
             else:
                 return self.board[cell-8].occupied == False
         def occupied_cell(cell):
-            print ("cell {}-{}".format(cell, self.board[cell].occupied))
+            # print ("cell {}-{}".format(cell, self.board[cell].occupied))
             return self.board[cell].occupied
 
         if check_in_bound(start_cell) and check_in_bound(neighbour_cell):
