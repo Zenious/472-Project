@@ -144,9 +144,13 @@ class DoubleCard():
                 if int(curr_cell_num / 8) != int(cell_num / 8):
                     continue
             elif direction == 'diag-left':
-                break
+                curr_cell_num = cell_num-8*x-x
+                if int(curr_cell_num / 8) != int(cell_num / 8)-x:
+                    continue
             elif direction == 'diag-right':
-                break
+                curr_cell_num = cell_num+8*x+x 
+                if int(curr_cell_num / 8) != int(cell_num / 8)-x:
+                    continue
 
             # check if out of board
             if curr_cell_num >= 0 and curr_cell_num < 8*12:
