@@ -98,12 +98,13 @@ class DoubleCard():
 
     def check_win(self, cell_num):
         # won't work for recycling moves
-        directions =['down', 'left', 'right', 'diag-left', 'diag-right']
+        directions =['vertical', 'horizontal', 'diag-left', 'diag-right']
         wins = [0,0,0,0]
+        winning_nums = [2*3*5*7, 3*5*7*11, 5*7*11*13, 7*11*13*17]
         for direction in directions:
             x = self.tabulate(cell_num, direction)
             for y,z in enumerate(x):
-                if z == 4 :
+                if list(filter(lambda x: z%x==0, winning_nums)):
                     print("Possible win with {}".format(y))
                     wins[y] = 1
         return wins
@@ -127,29 +128,36 @@ class DoubleCard():
 
     def tabulate(self, cell_num, direction):
         # won't work for recycling moves
-        red = 0
-        white = 0
-        cross = 0
-        circle = 0
-        for x in range(4):
+        red = 1
+        white = 1
+        cross = 1
+        circle = 1
+        primes = [2,3,5,7,11,13,17]
+        if direction == 'horizontal':
+            extend_cell_num = cell_num+3
+            if int(extend_cell_num / 8) != int(cell_num / 8):
+                extend_cell_num = (int(cell_num / 8)+1)*8-1
+        if direction == "vertical":
+            extend_cell_num = cell_num+3*8
+        if direction == 'diag-left':
+            extend_cell_num = cell_num+3*8+3
+        if direction == 'diag-right':
+            extend_cell_num = cell_num+3*8-3
+        for x in range(7):
             curr_cell = None
-            if direction == 'down':
-                curr_cell_num = cell_num-8*x
-            elif direction == 'left':
-                curr_cell_num = cell_num-x
-                if int(curr_cell_num / 8) != int(cell_num / 8):
-                    continue
-            elif direction == 'right':
-                curr_cell_num = cell_num+x
-                if int(curr_cell_num / 8) != int(cell_num / 8):
+            if direction == 'vertical':
+                curr_cell_num = extend_cell_num-8*x
+            elif direction == 'horizontal':
+                curr_cell_num = extend_cell_num-x
+                if int(curr_cell_num / 8) != int(extend_cell_num / 8):
                     continue
             elif direction == 'diag-left':
-                curr_cell_num = cell_num-8*x-x
-                if int(curr_cell_num / 8) != int(cell_num / 8)-x:
+                curr_cell_num = extend_cell_num-8*x-x
+                if int(curr_cell_num / 8) != int(extend_cell_num / 8)-x:
                     continue
             elif direction == 'diag-right':
-                curr_cell_num = cell_num+8*x+x 
-                if int(curr_cell_num / 8) != int(cell_num / 8)-x:
+                curr_cell_num = extend_cell_num+8*x+x 
+                if int(curr_cell_num / 8) != int(extend_cell_num / 8)-x:
                     continue
 
             # check if out of board
@@ -158,13 +166,13 @@ class DoubleCard():
             if curr_cell is None:
                 continue
             if curr_cell.color is 'Red':
-                red += 1
+                red *= primes[x]
             elif curr_cell.color is 'White':
-                white += 1
+                white *= primes[x]
             if curr_cell.symbol is 'O':
-                circle += 1
+                circle *= primes[x]
             elif curr_cell.symbol is 'X':
-                cross += 1 
+                cross *= primes[x]
         print (red, white, circle, cross, direction)
         return [red, white, circle, cross]
 
@@ -215,7 +223,7 @@ class DoubleCard():
         self.who_win(wins)
 
     def who_win(self, result):
-        player = self.turn % 2
+        player = self.turn % 2 + 1
         # player 1 win with Red and X
         # player 2 win with White and O
         print(result)
