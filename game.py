@@ -12,6 +12,13 @@ class Cell():
         self.link = None
         self.variant = None
 
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.color == other.color and self.id == other.id\
+            and self.symbol == other.symbol and self.occupied == other.occupied\
+            and self.link == other.link and self.variant == other.variant
+        return False
+
     def fill(self, color, symbol, link, variant):
         self.occupied = True
         self.color = color
@@ -48,7 +55,8 @@ class DoubleCard():
     def __init__(self):
         self.init_board()
         self.turn = 0
-        self.prev_board = []
+        self.prev_board = copy.deepcopy(self.board)
+        self.prev_move = []
 
     def letter_to_int(self, move):
         letter_map = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7}
@@ -57,13 +65,44 @@ class DoubleCard():
     def start(self):
         self.first_load()
         while self.turn <60:
+            self.print_board()
             self.command_parser()
             self.prev_board = copy.deepcopy(self.board)
         print("Game End with Draw")
 
     def first_load(self):
         print("Welcome Double Card Game!")
-        self.print_board()
+        # self.print_board()
+
+    def translate_n2r(self):
+        # Translate from normal to recycle move sytnax
+        pass
+
+    def same_move(self, parsed_command):
+        prev_move = self.prev_move
+        if len(prev_move)!= 7:
+            return False
+        if parsed_command == prev_move:
+            return True
+        if set(parsed_command[0:4]) == set(prev_move[0:4]):
+            print(parsed_command[4])
+            if parsed_command[4] == prev_move[4]:
+                return True
+        return False
+
+    def move_prev_card(self, parsed_command):
+        prev_move = self.prev_move
+        if len(prev_move)!= 7:
+            prev_card = self.prev_move[2:4]
+        else:
+            prev_card = self.prev_move[5:7]
+
+        c1 = parsed_command[0:2]
+        c2 = parsed_command[2:4]
+
+        if prev_card == c1 or prev_card == c2:
+            return True
+        return False
 
     def command_parser(self):
         command = input("Place your move: ")
@@ -78,23 +117,40 @@ class DoubleCard():
             else:
                 start_cell = self.letter_to_int(parsed_command[2]) + (int(parsed_command[3])-1)*8
                 self.place_card(int(parsed_command[1]), start_cell)
+                self.prev_move = parsed_command
         else:
             if len(parsed_command) != 7 or self.turn <24:
                 print("Invalid Move!")
+                return
             print("Recycling Move")
+            if self.same_move(parsed_command):
+                self.illegal_move("Same Move")
+                return
+            if self.move_prev_card(parsed_command):
+                self.illegal_move("Moving Same Card as Previous Move")
+                return
             start_cell = self.letter_to_int(parsed_command[0]) + (int(parsed_command[1])-1)*8
             neighbour_cell = self.letter_to_int(parsed_command[2]) + (int(parsed_command[3])-1)*8
             new_cell = self.letter_to_int(parsed_command[5]) + (int(parsed_command[6])-1)*8
-            self.remove_card(start_cell, neighbour_cell)
-            self.place_card(int(parsed_command[4]), new_cell)
-            # check if previously occupied cell causing board to be illegal
-            for cell in [start_cell, neighbour_cell]:
-                if cell+8 < 8*12:
-                    if self.board[cell+8].occupied:
-                        self.illegal_move()
+            if self.remove_card(start_cell, neighbour_cell):
+                self.place_card(int(parsed_command[4]), new_cell)
 
+                # TODO put board into class and overrides equals 
+                equals = True
+                for cell in self.board:
+                    if self.prev_board[cell.id] != cell:
+                        equals = False
+                        break
+                if equals:
+                    self.illegal_move("Move did not change to the board")
+                    return
+            self.prev_move = parsed_command
+            # check if previously occupied cell causing board to be illegal
+            # for cell in [start_cell, neighbour_cell]:
+            #     if cell+8 < 8*12:
+            #         if self.board[cell+8].occupied:
+            #             self.illegal_move()
         print ("Turn {}: Your Move was {}".format(self.turn, command))
-        self.print_board()
 
     def check_win(self, cell_num):
         # won't work for recycling moves
@@ -105,7 +161,7 @@ class DoubleCard():
             x = self.tabulate(cell_num, direction)
             for y,z in enumerate(x):
                 if list(filter(lambda x: z%x==0, winning_nums)):
-                    print("Possible win with {}".format(y))
+                    # print("Possible win with {}".format(y))
                     wins[y] = 1
         return wins
 
@@ -113,17 +169,28 @@ class DoubleCard():
         # check if cells are linked
         c1 = self.board[start_cell]
         c2 = self.board[neighbour_cell]
-        print (c1.id)
-        print (c2.id)
+        def in_bound(cell_num):
+            return cell_num >= 0 and cell_num < 8*12
+
+        illegal = False
         if c1.link == c2.id and c2.link == c1.id:
             c1.clear()
             c2.clear()
+            for c in [start_cell,neighbour_cell]:
+                if in_bound(c+8):
+                    if self.board[c+8].occupied:
+                        illegal = True            
         else:
-            self.illegal_move()
-            return
+            illegal = True
 
-    def illegal_move(self):
-        print("Illegal Move!")
+
+        if illegal:
+            self.illegal_move("Removal not possible")
+            return False
+        return True
+
+    def illegal_move(self, reason):
+        print("Illegal Move! - {}".format(reason))
         self.board = copy.deepcopy(self.prev_board)
 
     def tabulate(self, cell_num, direction):
@@ -180,7 +247,7 @@ class DoubleCard():
     def place_card(self, variant, start_cell):
         neighbour_cell = start_cell+1 if variant%2 == 1 else start_cell+8
         if self.check_illegal(start_cell, neighbour_cell):
-            self.illegal_move()
+            self.illegal_move("Placement not possible")
             return
         color = 'Red' if variant in [1,4,5,8] else 'White'
         symbol = 'O' if variant in [2,3,5,8] else 'X'
@@ -226,7 +293,6 @@ class DoubleCard():
         player = self.turn % 2 + 1
         # player 1 win with Red and X
         # player 2 win with White and O
-        print(result)
         player1_win = False
         player2_win = False
 
@@ -271,10 +337,13 @@ class DoubleCard():
                 print("HERE OCCUPIED")
                 return True
             if floating_cell(start_cell) or floating_cell(neighbour_cell):
+                if neighbour_cell - start_cell == 8:
+                    return floating_cell(start_cell) and floating_cell(neighbour_cell)
                 print("HERE FLOATING")
                 return True
             if neighbour_cell - start_cell == 1:
                 return int(neighbour_cell/8) != int(start_cell/8)
+            return False
         else:
             return True
 
@@ -294,7 +363,11 @@ class DoubleCard():
                         row += CWHITE
                     row +=" {} ".format(cell.get_symbol())
                     if cell.link_direction() is 'up':
-                        split += "   +"
+                        if cell.color is 'Red':
+                            split += CRED 
+                        else:
+                            split += CWHITE
+                        split += "   "+CEND+"+"
                         row += CEND + '|'
                     elif cell.link_direction() is 'right':
                         split += "---+"
