@@ -58,6 +58,7 @@ class DoubleCard():
         self.prev_board = copy.deepcopy(self.board)
         self.prev_move = []
         self.history = []
+        self.player_option = 1
 
     def start_menu(self):
         print("Welcome to Double Card Game!")
@@ -148,6 +149,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
       valid = True
       move_type = len(cmds)
       cmds = self.string_to_int(cmds)
+      print(cmds)
       if move_type == 1:
         if cmds != "history":
             valid = False
@@ -188,7 +190,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
         command = input("Place your move: ")
         self.flush()
         parsed_command = command.split(' ')
-           if not self.validate(parsed_command):
+        if not self.validate(parsed_command):
             self.illegal_move("Invalid command!")
             return
         if parsed_command[0] == 'history':
@@ -338,13 +340,13 @@ Player {} : {}""".format(x+1,x%2+1,y))
             self.illegal_move("Placement not possible")
             return
         color = 'Red' if variant in [1,4,5,8] else 'White'
-        symbol = 'O' if variant in [2,3,5,8] else 'X'
+        symbol = '\u25E6' if variant in [2,3,5,8] else "\u2022"
 
         def opp_color(color):
             return 'White' if color is 'Red' else 'Red'
 
         def opp_symbol(symbol):
-            return 'X' if symbol is 'O' else 'O'
+            return "\u2022" if symbol == '\u25E6' else '\u25E6'
 
         self.board[start_cell].fill(color, symbol, neighbour_cell, variant)
         self.board[neighbour_cell].fill(opp_color(color), opp_symbol(symbol), start_cell, variant)
@@ -386,9 +388,15 @@ Player {} : {}""".format(x+1,x%2+1,y))
 
         win_cases = [i for i, x in enumerate(result) if x == 1]
         if [i for i in [0,1,4,5] if i in win_cases]:
-            player1_win = True
+            if self.player_option == 1:
+                player1_win = True
+            else:
+                player2_win = True
         if [i for i in [2,3,6,7] if i in win_cases]:
-            player2_win = True
+            if self.player_option == 1:
+                player2_win = True
+            else:
+                player1_win = True
         if player1_win and player1_win:
             print("Player {} wins".format(player))
         elif player1_win:
