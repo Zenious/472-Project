@@ -58,9 +58,40 @@ class DoubleCard():
         self.prev_board = copy.deepcopy(self.board)
         self.prev_move = []
 
+    def start_menu(self):
+        print("Welcome to Double Card Game!")
+        while (True):
+            option = input("""============================
+Select Game Mode:
+1) Player VS Player
+2) Player VS AI
+
+Option: """)
+            self.flush()
+            if option == '1':
+                print("Player VS Player Mode Selected")
+                choice_text = """Choose Player 1 Winning condition:
+1) Colors
+2) Dots
+Option: """
+                while(True):
+                    choice=input(choice_text)
+                    if choice in ['1', '2']:
+                        self.player_option = choice
+                        break
+                self.flush()
+                break
+            elif option == '2':
+                print("Player VS AI Mode Selected")
+                print('Not Implemented Yet')
+                exit()
+            else:
+                print("Invalid option selected!")
+          
+
     def letter_to_int(self, move):
         letter_map = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7}
-        return letter_map[move]
+        return letter_map.setdefault(move, None)
     
     def start(self):
         self.first_load()
@@ -71,12 +102,8 @@ class DoubleCard():
         print("Game End with Draw")
 
     def first_load(self):
-        print("Welcome Double Card Game!")
         # self.print_board()
-
-    def translate_n2r(self):
-        # Translate from normal to recycle move sytnax
-        pass
+        self.start_menu()
 
     def same_move(self, parsed_command):
         prev_move = self.prev_move
@@ -104,19 +131,66 @@ class DoubleCard():
             return True
         return False
 
+    def string_to_int(self, commands_list):
+        for x,y in enumerate(commands_list):
+            if y.isnumeric():
+              print ("{} is numeric".format(y))
+              commands_list[x] = int(y)
+        return commands_list
+
+    def validate(self, cmds):
+      valid = True
+      move_type = len(cmds)
+      cmds = self.string_to_int(cmds)
+      if move_type == 4: # Regular Move
+          int_letter = self.letter_to_int(cmds[2])
+          if cmds[0] != 0:
+              valid = False
+          elif cmds[1] > 8 or cmds[1] <1:
+              valid = False
+          elif int_letter is None:
+              valid = False
+          elif cmds[3] > 12 or cmds[3] <1:
+              valid = False
+      elif move_type == 7:
+          int_letter_0 = self.letter_to_int(cmds[0])
+          int_letter_2 = self.letter_to_int(cmds[2])
+          int_letter_5 = self.letter_to_int(cmds[5])
+          if int_letter_0 is None:
+              valid = False
+          elif cmds[1] > 12 or cmds[1] <1:
+              valid = False
+          elif int_letter_2 is None:
+              valid = False
+          elif cmds[3] > 12 or cmds[3] <1:
+              valid = False
+          elif cmds[4] > 8 or cmds[4] <1:
+              valid = False
+          elif int_letter_5 is None:
+              valid = False
+          elif cmds[6] > 12 or cmds[6] <1:
+              valid = False
+      else:
+        valid = False
+      return valid
+        
+
     def command_parser(self):
         command = input("Place your move: ")
         self.flush()
         parsed_command = command.split(' ')
-        if parsed_command[0] is '0':
+        if not self.validate(parsed_command):
+            self.illegal_move("Invalid command!")
+            return
+        if parsed_command[0] == 0:
             print("Regular Move")
             if len(parsed_command) != 4:
                 print("Invalid Move!")
             if self.turn >= 24:
                 print("Cannot use Regular Moves!")
             else:
-                start_cell = self.letter_to_int(parsed_command[2]) + (int(parsed_command[3])-1)*8
-                self.place_card(int(parsed_command[1]), start_cell)
+                start_cell = self.letter_to_int(parsed_command[2]) + (parsed_command[3]-1)*8
+                self.place_card(parsed_command[1], start_cell)
                 self.prev_move = parsed_command
         else:
             if len(parsed_command) != 7 or self.turn <24:
@@ -129,11 +203,11 @@ class DoubleCard():
             if self.move_prev_card(parsed_command):
                 self.illegal_move("Moving Same Card as Previous Move")
                 return
-            start_cell = self.letter_to_int(parsed_command[0]) + (int(parsed_command[1])-1)*8
-            neighbour_cell = self.letter_to_int(parsed_command[2]) + (int(parsed_command[3])-1)*8
-            new_cell = self.letter_to_int(parsed_command[5]) + (int(parsed_command[6])-1)*8
+            start_cell = self.letter_to_int(parsed_command[0]) + (parsed_command[1]-1)*8
+            neighbour_cell = self.letter_to_int(parsed_command[2]) + (parsed_command[3]-1)*8
+            new_cell = self.letter_to_int(parsed_command[5]) + (parsed_command[6]-1)*8
             if self.remove_card(start_cell, neighbour_cell):
-                self.place_card(int(parsed_command[4]), new_cell)
+                self.place_card(parsed_command[4], new_cell)
 
                 # TODO put board into class and overrides equals 
                 equals = True
@@ -297,9 +371,9 @@ class DoubleCard():
         player2_win = False
 
         win_cases = [i for i, x in enumerate(result) if x == 1]
-        if [i for i in [0,3,4,7] if i in win_cases]:
+        if [i for i in [0,1,4,5] if i in win_cases]:
             player1_win = True
-        if [i for i in [1,2,5,6] if i in win_cases]:
+        if [i for i in [2,3,6,7] if i in win_cases]:
             player2_win = True
         if player1_win and player1_win:
             print("Player {} wins".format(player))
