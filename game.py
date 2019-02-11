@@ -57,6 +57,7 @@ class DoubleCard():
         self.turn = 0
         self.prev_board = copy.deepcopy(self.board)
         self.prev_move = []
+        self.history = []
 
     def letter_to_int(self, move):
         letter_map = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7}
@@ -74,9 +75,10 @@ class DoubleCard():
         print("Welcome Double Card Game!")
         # self.print_board()
 
-    def translate_n2r(self):
-        # Translate from normal to recycle move sytnax
-        pass
+    def print_history(self):
+        for x,y in enumerate(self.history):
+            print("""Turn {}:
+Player {} : {}""".format(x+1,x%2+1,y))
 
     def same_move(self, parsed_command):
         prev_move = self.prev_move
@@ -108,7 +110,10 @@ class DoubleCard():
         command = input("Place your move: ")
         self.flush()
         parsed_command = command.split(' ')
-        if parsed_command[0] is '0':
+        if parsed_command[0] == 'history':
+            self.print_history()
+            return
+        elif parsed_command[0] is '0':
             print("Regular Move")
             if len(parsed_command) != 4:
                 print("Invalid Move!")
@@ -118,6 +123,7 @@ class DoubleCard():
                 start_cell = self.letter_to_int(parsed_command[2]) + (int(parsed_command[3])-1)*8
                 self.place_card(int(parsed_command[1]), start_cell)
                 self.prev_move = parsed_command
+                self.history.append(command)
         else:
             if len(parsed_command) != 7 or self.turn <24:
                 print("Invalid Move!")
@@ -145,6 +151,7 @@ class DoubleCard():
                     self.illegal_move("Move did not change to the board")
                     return
             self.prev_move = parsed_command
+            self.history.append(command)
             # check if previously occupied cell causing board to be illegal
             # for cell in [start_cell, neighbour_cell]:
             #     if cell+8 < 8*12:
