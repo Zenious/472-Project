@@ -50,6 +50,8 @@ Option: """
     def start(self):
         self.first_load()
         while self.turn <60:
+            if self.history:
+                print ("Turn {}: Move placed is {}".format(self.turn, self.history[-1]))
             self.print_board()
             self.command_parser()
             self.prev_board = copy.deepcopy(self.board)
@@ -151,6 +153,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
     def command_parser(self):
         command = input("[Player {}'s Turn] Place your move: ".format(self.turn%2 +1))
         self.flush()
+        print ("Player Input: {}".format(command))
         parsed_command = command.split(' ')
         if not self.validate(parsed_command):
             self.illegal_move("Invalid command!")
@@ -163,6 +166,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
                 print("Invalid Move!")
             if self.turn >= 24:
                 print("Cannot use Regular Moves!")
+                return
             else:
                 start_cell = self.letter_to_int(parsed_command[2]) + (parsed_command[3]-1)*8
                 self.place_card(parsed_command[1], start_cell)
@@ -195,7 +199,6 @@ Player {} : {}""".format(x+1,x%2+1,y))
                     return
             self.prev_move = parsed_command
             self.history.append(command)
-        print ("Turn {}: Your Move was {}".format(self.turn, command))
 
     def check_win(self, cell_num):
         # won't work for recycling moves
@@ -310,8 +313,6 @@ Player {} : {}""".format(x+1,x%2+1,y))
 
     def who_win(self, result):
         player = self.turn % 2 + 1
-        # player 1 win with Red and X
-        # player 2 win with White and O
         player1_win = False
         player2_win = False
 
@@ -358,12 +359,12 @@ Player {} : {}""".format(x+1,x%2+1,y))
 
         if check_in_bound(start_cell) and check_in_bound(neighbour_cell):
             if occupied_cell(start_cell) or occupied_cell(neighbour_cell):
-                print("HERE OCCUPIED")
+                # print("HERE OCCUPIED")
                 return True
             if floating_cell(start_cell) or floating_cell(neighbour_cell):
                 if neighbour_cell - start_cell == 8:
                     return floating_cell(start_cell) and floating_cell(neighbour_cell)
-                print("HERE FLOATING")
+                # print("HERE FLOATING")
                 return True
             if neighbour_cell - start_cell == 1:
                 return int(neighbour_cell/8) != int(start_cell/8)
