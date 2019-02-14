@@ -1,57 +1,9 @@
 #!/bin/python
-
 import sys
 import copy 
-
-class Cell():
-    def __init__(self, number):
-        self.id = number
-        self.occupied = False
-        self.color = None
-        self.symbol = None
-        self.link = None
-        self.variant = None
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            return self.color == other.color and self.id == other.id\
-            and self.symbol == other.symbol and self.occupied == other.occupied\
-            and self.link == other.link and self.variant == other.variant
-        return False
-
-    def fill(self, color, symbol, link, variant):
-        self.occupied = True
-        self.color = color
-        self.symbol = symbol
-        self.link = link
-        self.variant = variant
-
-    def get_symbol(self):
-        if self.symbol is None:
-            return ' '
-        else:
-            return self.symbol
-
-    def link_direction(self):
-        diff = self.link - self.id
-        if diff == 1:
-            return 'right'
-        if diff == 8:
-            return "up"
-        if diff == -1:
-            return "left"
-        if diff == -8:
-            return "down"
-
-    def clear(self):
-        self.occupied = False
-        self.color = None
-        self.symbol = None
-        self.link = None
-        self.variant = None
+from cell import Cell
 
 class DoubleCard():
-
     def __init__(self):
         self.init_board()
         self.turn = 0
@@ -104,7 +56,6 @@ Option: """
         print("Game End with Draw")
 
     def first_load(self):
-        # self.print_board()
         self.start_menu()
 
     def print_history(self):
@@ -244,11 +195,6 @@ Player {} : {}""".format(x+1,x%2+1,y))
                     return
             self.prev_move = parsed_command
             self.history.append(command)
-            # check if previously occupied cell causing board to be illegal
-            # for cell in [start_cell, neighbour_cell]:
-            #     if cell+8 < 8*12:
-            #         if self.board[cell+8].occupied:
-            #             self.illegal_move()
         print ("Turn {}: Your Move was {}".format(self.turn, command))
 
     def check_win(self, cell_num):
@@ -293,7 +239,6 @@ Player {} : {}""".format(x+1,x%2+1,y))
         self.board = copy.deepcopy(self.prev_board)
 
     def tabulate(self, cell_num, direction):
-        # won't work for recycling moves
         red = 1
         white = 1
         cross = 1
@@ -359,30 +304,6 @@ Player {} : {}""".format(x+1,x%2+1,y))
         self.board[start_cell].fill(color, symbol, neighbour_cell, variant)
         self.board[neighbour_cell].fill(opp_color(color), opp_symbol(symbol), start_cell, variant)
         self.turn += 1
-        # if variant is 1:
-        #     self.board[start_cell].fill("Red", "X")
-        #     self.board[neighbour_cell].fill("White", "O")
-        # if variant is 2:
-        #     self.board[start_cell].fill("White", "O")
-        #     self.board[neighbour_cell].fill("Red", "X")
-        # if variant is 3:
-        #     self.board[start_cell].fill("White", "O")
-        #     self.board[neighbour_cell].fill("Red", "X")
-        # if variant is 4:
-        #     self.board[start_cell].fill("Red", "X")
-        #     self.board[neighbour_cell].fill("White", "O")
-        # if variant is 5:
-        #     self.board[start_cell].fill("Red", "O")
-        #     self.board[neighbour_cell].fill("White", "X")
-        # if variant is 6:
-        #     self.board[start_cell].fill("White", "X")
-        #     self.board[neighbour_cell].fill("Red", "O")
-        # if variant is 7:
-        #     self.board[start_cell].fill("White", "X")
-        #     self.board[neighbour_cell].fill("Red", "O")
-        # if variant is 8:
-        #     self.board[start_cell].fill("Red", "O")
-        #     self.board[neighbour_cell].fill("White", "X")
         wins = self.check_win(start_cell)
         wins.extend(self.check_win(neighbour_cell))
         self.who_win(wins)
@@ -433,7 +354,6 @@ Player {} : {}""".format(x+1,x%2+1,y))
             else:
                 return self.board[cell-8].occupied == False
         def occupied_cell(cell):
-            # print ("cell {}-{}".format(cell, self.board[cell].occupied))
             return self.board[cell].occupied
 
         if check_in_bound(start_cell) and check_in_bound(neighbour_cell):
