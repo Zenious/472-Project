@@ -141,49 +141,60 @@ Player {} : {}""".format(x+1,x%2+1,y))
     def string_to_int(self, commands_list):
         for x,y in enumerate(commands_list):
             if y.isnumeric():
-              print ("{} is numeric".format(y))
               commands_list[x] = int(y)
         return commands_list
 
     def validate(self, cmds):
-      valid = True
-      move_type = len(cmds)
-      cmds = self.string_to_int(cmds)
-      print(cmds)
-      if move_type == 1:
-        if cmds != "history":
+        valid = True
+        move_type = len(cmds)
+        cmds = self.string_to_int(cmds)
+        if move_type == 1:
+            if cmds != "history": # View History
+                valid = False
+        elif move_type == 4: # Regular Move (eg. 0 7 A 1)
+            int_letter = self.letter_to_int(cmds[2])
+            if cmds[0] != 0:
+                valid = False
+            elif type(cmds[1]) != int:
+                valid = False
+            elif type(cmds[3]) != int:
+                valid = False
+            elif cmds[1] > 8 or cmds[1] <1:
+                valid = False
+            elif int_letter is None:
+                valid = False
+            elif cmds[3] > 12 or cmds[3] <1:
+                valid = False
+        elif move_type == 7: # Recycling move (eg. A 1 A 2 7 A 1)
+            int_letter_0 = self.letter_to_int(cmds[0])
+            int_letter_2 = self.letter_to_int(cmds[2])
+            int_letter_5 = self.letter_to_int(cmds[5])
+        
+            if int_letter_0 is None:
+                valid = False
+            elif type(cmds[1]) != int:
+                valid = False
+            elif type(cmds[3]) != int:
+                valid = False
+            elif type(cmds[4]) != int:
+                valid = False
+            elif type(cmds[6]) != int:
+                valid = False
+            elif cmds[1] > 12 or cmds[1] <1:
+                valid = False
+            elif int_letter_2 is None:
+                valid = False
+            elif cmds[3] > 12 or cmds[3] <1:
+                valid = False
+            elif cmds[4] > 8 or cmds[4] <1:
+                valid = False
+            elif int_letter_5 is None:
+                valid = False
+            elif cmds[6] > 12 or cmds[6] <1:
+                valid = False
+        else:
             valid = False
-      elif move_type == 4: # Regular Move
-          int_letter = self.letter_to_int(cmds[2])
-          if cmds[0] != 0:
-              valid = False
-          elif cmds[1] > 8 or cmds[1] <1:
-              valid = False
-          elif int_letter is None:
-              valid = False
-          elif cmds[3] > 12 or cmds[3] <1:
-              valid = False
-      elif move_type == 7:
-          int_letter_0 = self.letter_to_int(cmds[0])
-          int_letter_2 = self.letter_to_int(cmds[2])
-          int_letter_5 = self.letter_to_int(cmds[5])
-          if int_letter_0 is None:
-              valid = False
-          elif cmds[1] > 12 or cmds[1] <1:
-              valid = False
-          elif int_letter_2 is None:
-              valid = False
-          elif cmds[3] > 12 or cmds[3] <1:
-              valid = False
-          elif cmds[4] > 8 or cmds[4] <1:
-              valid = False
-          elif int_letter_5 is None:
-              valid = False
-          elif cmds[6] > 12 or cmds[6] <1:
-              valid = False
-      else:
-        valid = False
-      return valid
+        return valid
         
 
     def command_parser(self):
@@ -197,7 +208,6 @@ Player {} : {}""".format(x+1,x%2+1,y))
             self.print_history()
             return
         elif parsed_command[0] == 0:
-            print("Regular Move")
             if len(parsed_command) != 4:
                 print("Invalid Move!")
             if self.turn >= 24:
@@ -211,7 +221,6 @@ Player {} : {}""".format(x+1,x%2+1,y))
             if len(parsed_command) != 7 or self.turn <24:
                 print("Invalid Move!")
                 return
-            print("Recycling Move")
             if self.same_move(parsed_command):
                 self.illegal_move("Same Move")
                 return
@@ -330,7 +339,6 @@ Player {} : {}""".format(x+1,x%2+1,y))
                 circle *= primes[x]
             elif curr_cell.symbol is 'X':
                 cross *= primes[x]
-        print (red, white, circle, cross, direction)
         return [red, white, circle, cross]
 
 
