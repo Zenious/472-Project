@@ -149,7 +149,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
         
 
     def command_parser(self):
-        command = input("Place your move: ")
+        command = input("[Player {}'s Turn] Place your move: ".format(self.turn%2 +1))
         self.flush()
         parsed_command = command.split(' ')
         if not self.validate(parsed_command):
