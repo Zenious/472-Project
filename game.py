@@ -2,10 +2,11 @@
 import sys
 import copy 
 from cell import Cell
+from board import Board
 
 class DoubleCard():
     def __init__(self):
-        self.init_board()
+        self.board = Board()
         self.turn = 0
         self.prev_board = copy.deepcopy(self.board)
         self.prev_move = []
@@ -49,10 +50,12 @@ Option: """
     
     def start(self):
         self.first_load()
-        while self.turn <60:
+        while True:
             if self.history:
                 print ("Turn {}: Move placed is {}".format(self.turn, self.history[-1]))
-            self.print_board()
+            print (self.board)
+            if self.turn == 60:
+                break
             self.command_parser()
             self.prev_board = copy.deepcopy(self.board)
         print("Game End with Draw")
@@ -188,13 +191,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
             if self.remove_card(start_cell, neighbour_cell):
                 self.place_card(parsed_command[4], new_cell)
 
-                # TODO put board into class and overrides equals 
-                equals = True
-                for cell in self.board:
-                    if self.prev_board[cell.id] != cell:
-                        equals = False
-                        break
-                if equals:
+                if self.board == self.prev_board:
                     self.illegal_move("Move did not change to the board")
                     return
             self.prev_move = parsed_command
@@ -215,8 +212,8 @@ Player {} : {}""".format(x+1,x%2+1,y))
 
     def remove_card(self, start_cell, neighbour_cell):
         # check if cells are linked
-        c1 = self.board[start_cell]
-        c2 = self.board[neighbour_cell]
+        c1 = self.board.get(start_cell)
+        c2 = self.board.get(neighbour_cell)
         def in_bound(cell_num):
             return cell_num >= 0 and cell_num < 8*12
 
@@ -226,7 +223,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
             c2.clear()
             for c in [start_cell,neighbour_cell]:
                 if in_bound(c+8):
-                    if self.board[c+8].occupied:
+                    if self.board.get(c+8).occupied:
                         illegal = True            
         else:
             illegal = True
@@ -276,7 +273,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
 
             # check if out of board
             if curr_cell_num >= 0 and curr_cell_num < 8*12:
-                curr_cell = self.board[curr_cell_num]
+                curr_cell = self.board.get(curr_cell_num)
             if curr_cell is None:
                 continue
             if curr_cell.color is 'Red':
@@ -304,8 +301,8 @@ Player {} : {}""".format(x+1,x%2+1,y))
         def opp_symbol(symbol):
             return "\u2022" if symbol == '\u25E6' else '\u25E6'
 
-        self.board[start_cell].fill(color, symbol, neighbour_cell, variant)
-        self.board[neighbour_cell].fill(opp_color(color), opp_symbol(symbol), start_cell, variant)
+        self.board.get(start_cell).fill(color, symbol, neighbour_cell, variant)
+        self.board.get(neighbour_cell).fill(opp_color(color), opp_symbol(symbol), start_cell, variant)
         self.turn += 1
         wins = self.check_win(start_cell)
         wins.extend(self.check_win(neighbour_cell))
@@ -337,10 +334,6 @@ Player {} : {}""".format(x+1,x%2+1,y))
             self.print_board()
             exit()
 
-    def init_board(self):
-        # init 12x8 board
-        self.board = [Cell(x) for x in range(12*8)] 
-
     def flush(self):
         print(chr(27) + "[2J")
 
@@ -353,9 +346,9 @@ Player {} : {}""".format(x+1,x%2+1,y))
             if cell-8 <0:
                 return False
             else:
-                return self.board[cell-8].occupied == False
+                return self.board.get(cell-8).occupied == False
         def occupied_cell(cell):
-            return self.board[cell].occupied
+            return self.board.get(cell).occupied
 
         if check_in_bound(start_cell) and check_in_bound(neighbour_cell):
             if occupied_cell(start_cell) or occupied_cell(neighbour_cell):
@@ -371,43 +364,6 @@ Player {} : {}""".format(x+1,x%2+1,y))
             return False
         else:
             return True
-
-    def print_board(self):
-        for y in range(12):
-            row = "{:2}|".format(12-y)
-            split = "  +"
-            for x in range(8):
-                CRED = '\033[41m'
-                CEND = '\033[0m'
-                CWHITE = '\033[107m'
-                cell = self.board[8*(11-y)+x]
-                if cell.occupied is True:
-                    if cell.color is 'Red':
-                        row += CRED 
-                    else:
-                        row += CWHITE
-                    row +=" {} ".format(cell.get_symbol())
-                    if cell.link_direction() is 'up':
-                        if cell.color is 'Red':
-                            split += CRED 
-                        else:
-                            split += CWHITE
-                        split += "   "+CEND+"+"
-                        row += CEND + '|'
-                    elif cell.link_direction() is 'right':
-                        split += "---+"
-                        row += ' ' + CEND
-                    else :
-                        split += "---+"
-                        row += CEND +'|'
-                else:
-                    row +="   |"                
-                    split += "---+"
-
-            print(split)
-            print(row)
-        print("  +---+---+---+---+---+---+---+---+")
-        print("  | A | B | C | D | E | F | G | H |")
 
 x = DoubleCard()
 x.start()
