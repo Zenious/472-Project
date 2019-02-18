@@ -280,9 +280,9 @@ Player {} : {}""".format(x+1,x%2+1,y))
                 red *= primes[x]
             elif curr_cell.color is 'White':
                 white *= primes[x]
-            if curr_cell.symbol is '\u2022':
+            if curr_cell.symbol == '\u2022':
                 circle *= primes[x]
-            elif curr_cell.symbol is '\u25E6:
+            elif curr_cell.symbol == '\u25E6':
                 cross *= primes[x]
         return [red, white, circle, cross]
 
@@ -303,10 +303,10 @@ Player {} : {}""".format(x+1,x%2+1,y))
 
         self.board.get(start_cell).fill(color, symbol, neighbour_cell, variant)
         self.board.get(neighbour_cell).fill(opp_color(color), opp_symbol(symbol), start_cell, variant)
-        self.turn += 1
         wins = self.check_win(start_cell)
         wins.extend(self.check_win(neighbour_cell))
         self.who_win(wins)
+        self.turn += 1
 
     def who_win(self, result):
         player = self.turn % 2 + 1
@@ -324,7 +324,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
                 player2_win = True
             else:
                 player1_win = True
-        if player1_win and player1_win:
+        if player1_win and player2_win:
             print("Player {} wins".format(player))
         elif player1_win:
             print("Player 1 wins")
