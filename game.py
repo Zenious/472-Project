@@ -198,7 +198,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
             self.history.append(command)
 
     def check_win(self, cell_num):
-        # won't work for recycling moves
+
         directions =['vertical', 'horizontal', 'diag-left', 'diag-right']
         wins = [0,0,0,0]
         winning_nums = [2*3*5*7, 3*5*7*11, 5*7*11*13, 7*11*13*17]
@@ -280,9 +280,9 @@ Player {} : {}""".format(x+1,x%2+1,y))
                 red *= primes[x]
             elif curr_cell.color is 'White':
                 white *= primes[x]
-            if curr_cell.symbol is 'O':
+            if curr_cell.symbol is '\u2022':
                 circle *= primes[x]
-            elif curr_cell.symbol is 'X':
+            elif curr_cell.symbol is '\u25E6:
                 cross *= primes[x]
         return [red, white, circle, cross]
 
@@ -331,7 +331,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
         elif player2_win:
             print("Player 2 wins")
         if player2_win or player1_win:
-            self.print_board()
+            print(self.board)
             exit()
 
     def flush(self):
