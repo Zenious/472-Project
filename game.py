@@ -167,6 +167,8 @@ Player {} : {}""".format(x+1,x%2+1,y))
         elif parsed_command[0] == 0:
             if len(parsed_command) != 4:
                 print("Invalid Move!")
+                return
+
             if self.turn >= 24:
                 print("Cannot use Regular Moves!")
                 return
@@ -194,8 +196,8 @@ Player {} : {}""".format(x+1,x%2+1,y))
                 if self.board == self.prev_board:
                     self.illegal_move("Move did not change to the board")
                     return
-            self.prev_move = parsed_command
-            self.history.append(command)
+                self.prev_move = parsed_command
+                self.history.append(command)
 
     def check_win(self, cell_num):
 
