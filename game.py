@@ -25,24 +25,53 @@ Option: """)
             self.flush()
             if option == '1':
                 print("Player VS Player Mode Selected")
-                choice_text = """Choose Player 1 Winning condition:
-1) Colors
-2) Dots
-Option: """
-                while(True):
-                    choice=input(choice_text)
-                    if choice in ['1', '2']:
-                        self.player_option = choice
-                        break
+                self.win_condition()
                 self.flush()
                 break
             elif option == '2':
                 print("Player VS AI Mode Selected")
-                print('Not Implemented Yet')
-                exit()
+                self.ai_condition()
+                self.flush()
+                self.win_condition()
+                self.flush()
+                break
             else:
                 print("Invalid option selected!")
-          
+
+    def ai_condition(self):
+        trace_text = "Do you want to have an output of the trace?(Y/N): "
+        choice_text = """Choose AI to start 1st or 2nd:
+1) 1st
+2) 2nd
+Option: """
+        while(True):
+            choice=input(trace_text)
+            if choice in ['Y', 'N']:
+                if choice == 'Y':
+                    self.trace = True
+                else:
+                    self.trace = False
+                break
+            self.flush()
+
+        while(True):
+            self.flush()
+            choice=input(choice_text)
+            if choice in ['1', '2']:
+                self.ai_player = int(choice)
+                break
+
+    def win_condition(self):
+        choice_text = """Choose Player 1 Winning condition:
+1) Colors
+2) Dots
+Option: """
+        while(True):
+            choice=input(choice_text)
+            if choice in ['1', '2']:
+                self.player_option = int(choice)
+                break
+            self.flush()
 
     def letter_to_int(self, move):
         letter_map = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7}
@@ -154,9 +183,15 @@ Player {} : {}""".format(x+1,x%2+1,y))
         
 
     def command_parser(self):
-        command = input("[Player {}'s Turn] Place your move: ".format(self.turn%2 +1))
+        curr_player = self.turn%2 + 1
+        curr_ai = (self.ai_player == curr_player)
+        if not curr_ai:
+            command = input("[{}'s Turn] Place your move: ".format("Player {}".format(curr_player)))
+        else:
+            command = "0 2 A 1" # TODO place output of minimax algo here
+            print("[AI's Turn] Place your move: {}".format(command))
         self.flush()
-        print ("Player Input: {}".format(command))
+        print ("{player} Input: {command}".format(player="Player" if curr_ai else "AI" ,command=command))
         parsed_command = command.split(' ')
         if not self.validate(parsed_command):
             self.illegal_move("Invalid command!")
