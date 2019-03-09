@@ -9,6 +9,7 @@ class DoubleCard():
         self.board = Board()
         self.turn = 0
         self.prev_board = copy.deepcopy(self.board)
+        self.trace = True
         self.prev_move = []
         self.history = []
         self.player_option = 1
@@ -188,7 +189,8 @@ Player {} : {}""".format(x+1,x%2+1,y))
         if not curr_ai:
             command = input("[{}'s Turn] Place your move: ".format("Player {}".format(curr_player)))
         else:
-            command = "0 2 A 1" # TODO place output of minimax algo here
+            command = getNextMove(self.board, self.trace, False)
+            # command = "0 2 A 1" # TODO place output of minimax algo here
             print("[AI's Turn] Place your move: {}".format(command))
         self.flush()
         print ("{player} Input: {command}".format(player="Player" if curr_ai else "AI" ,command=command))
