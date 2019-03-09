@@ -3,6 +3,7 @@ import sys
 import copy 
 from cell import Cell
 from board import Board
+from minimax import getNextMove
 
 class DoubleCard():
     def __init__(self):
