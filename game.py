@@ -14,6 +14,7 @@ class DoubleCard():
         self.prev_move = []
         self.history = []
         self.player_option = 1
+        self.ai_player = 99999
 
     def start_menu(self):
         print("Welcome to Double Card Game!")
@@ -190,7 +191,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
         if not curr_ai:
             command = input("[{}'s Turn] Place your move: ".format("Player {}".format(curr_player)))
         else:
-            command = getNextMove(self.board, self.trace, False)
+            command = getNextMove(self.board, self.trace, show_stats=True, show_trace=True)
             # command = "0 2 A 1" # TODO place output of minimax algo here
             print("[AI's Turn] Place your move: {}".format(command))
         self.flush()

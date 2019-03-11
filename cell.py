@@ -6,7 +6,7 @@ class Cell():
         self.occupied = False
         self.color = None
         self.symbol = None
-        self.link = None
+        self.link = float("-inf")
         self.variant = None
 
     def __eq__(self, other):
@@ -29,16 +29,30 @@ class Cell():
         else:
             return self.symbol
 
+    def get_color(self):
+        if self.color is None:
+            return " "
+        else:
+            return self.color
+
+    def get_id(self):
+        return self.id
+
+    def get_variant(self):
+        return self.variant
+        
     def link_direction(self):
         diff = self.link - self.id
         if diff == 1:
             return 'right'
-        if diff == 8:
+        elif diff == 8:
             return "up"
-        if diff == -1:
+        elif diff == -1:
             return "left"
-        if diff == -8:
+        elif diff == -8:
             return "down"
+        else:
+            return "no link"
 
     def clear(self):
         self.occupied = False
