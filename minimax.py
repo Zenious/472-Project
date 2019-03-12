@@ -347,9 +347,9 @@ def minMax(depth, parent_index, show_stats=False):
 				if child_value < node_value:
 					node_value = child_value
 					move_to_play = TREE_ARRAY_MOVES[child_index]
-					evaluated_children += 1
-					if not math.isinf(child_value):
-						children_values.append(child_value)
+				evaluated_children += 1
+				if not math.isinf(child_value):
+					children_values.append(child_value)
 
 			for n in range(depth):
 				stats += '\t'
@@ -384,9 +384,9 @@ def minMax(depth, parent_index, show_stats=False):
 				if child_value > node_value:
 					node_value = child_value
 					move_to_play = TREE_ARRAY_MOVES[child_index]
-					evaluated_children += 1
-					if not math.isinf(child_value):
-						children_values.append(child_value)
+				evaluated_children += 1
+				if not math.isinf(child_value):
+					children_values.append(child_value)
 
 			for n in range(depth):
 				stats += '\t'
@@ -432,9 +432,9 @@ def minMaxDot(depth, parent_index, show_stats=False):
 				if child_value > node_value:
 					node_value = child_value
 					move_to_play = TREE_ARRAY_MOVES[child_index]
-					evaluated_children += 1
-					if not math.isinf(child_value):
-						children_values.append(child_value)
+				evaluated_children += 1
+				if not math.isinf(child_value):
+					children_values.append(child_value)
 
 			for n in range(depth):
 				stats += '\t'
@@ -469,9 +469,9 @@ def minMaxDot(depth, parent_index, show_stats=False):
 				if child_value < node_value:
 					node_value = child_value
 					move_to_play = TREE_ARRAY_MOVES[child_index]
-					evaluated_children += 1
-					if not math.isinf(child_value):
-						children_values.append(child_value)
+				evaluated_children += 1
+				if not math.isinf(child_value):
+					children_values.append(child_value)
 
 			for n in range(depth):
 				stats += '\t'
