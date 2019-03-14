@@ -1,4 +1,4 @@
-import math, random, copy
+import math, random, copy, pickle
 
 ROTATION = {
 	1: {
@@ -88,7 +88,8 @@ def setHeight(height):
 
 # missing recycled move code
 def addMoveToBoard(parent_board, move, legal_cells):
-		board = copy.deepcopy(parent_board)
+		# board = copy.deepcopy(parent_board)
+		board = pickle.loads(parent_board)
 		column = move['column']
 		row = move['row']
 		rotation = move['rotation']
@@ -248,6 +249,7 @@ def buildTree(depth, parent_index, board_state = False, legal_cells = False):
 
 		### production algorithm 
 		child_index_count = 0
+		pickle_board = pickle.dumps(board_state)
 		for index in legal_cells:														
 			for r in ROTATION:
 				child_index = NUM_CHILDREN * parent_index + child_index_count + 1
@@ -259,7 +261,7 @@ def buildTree(depth, parent_index, board_state = False, legal_cells = False):
 				}
 				
 				# returns new board if legal, False bool if illegal
-				new_board = addMoveToBoard(board_state, new_move, legal_cells)			
+				new_board = addMoveToBoard(pickle_board, new_move, legal_cells)
 
 				if new_board != False:													
 					child_index_count += 1
@@ -491,6 +493,7 @@ def minMaxDot(depth, parent_index, show_stats=False):
 
 def interfaceBoard(board_state):
 	formatted_board = []
+	# return board_state # for use to test with local code
 	for n in board_state.board:
 		# Symbol
 		board_symbol = n.get_symbol()
