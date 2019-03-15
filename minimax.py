@@ -55,7 +55,8 @@ MAX_LEAVES = int(math.pow(NUM_CHILDREN, TREE_HEIGHT))										# number of nodes
 MAX_NODES = int((math.pow(NUM_CHILDREN, TREE_HEIGHT + 1) - 1 ) / ( NUM_CHILDREN - 1 ))		# total calculated nodes of tree
 TREE_ARRAY = [math.nan] * MAX_NODES															# k-ary array
 TREE_ARRAY_MOVES = [{}] * MAX_NODES	
-															
+HCOUNT = 0
+
 # Pre-generate lookup table for cell reference and dereference
 cell_lookup = {}
 
@@ -243,6 +244,7 @@ def calculateHeuristic(board_state):
 # Tree is build DEPTH FIRST
 def buildTree(depth, parent_index, board_state = False, legal_cells = False):
 	# not at leaf node	
+	global HCOUNT
 	if depth is not TREE_HEIGHT:						
 
 		# contents of parent node - 0 is not appropriate placeholder	 
@@ -295,6 +297,7 @@ def buildTree(depth, parent_index, board_state = False, legal_cells = False):
 	
 	# at leaf node 
 	else:
+		HCOUNT += 1
 		heuristic = calculateHeuristic(board_state)
 		TREE_ARRAY[parent_index] = heuristic
 		
@@ -340,7 +343,7 @@ def minMax(depth, parent_index, show_stats=False):
 	move_to_play = {}
 	if depth is not TREE_HEIGHT:
 		
-		# odd == MIN_PLAYER, (1,3,5...)
+		# odd depth have to max
 		if (depth % 2) != 0:
 			node_value = math.inf
 			
@@ -348,34 +351,36 @@ def minMax(depth, parent_index, show_stats=False):
 			for c in range(NUM_CHILDREN):
 				
 				child_index = NUM_CHILDREN * parent_index + c + 1
-				child_value, move_dump = minMax(depth + 1, child_index, show_stats)
+				child_value, move_dump, child_eval = minMaxDot(depth + 1, child_index, show_stats)
+				evaluated_children += child_eval
 
 				# ignore inf and nan
-				if math.isinf(node_value) and not math.isnan(child_value):
-					node_value = child_value
+				# if math.isinf(node_value) and not math.isnan(child_value):
+				# 	node_value = child_value
 				
-				if math.isinf(child_value):
-					child_value = math.inf
+				# if math.isinf(child_value):
+				# 	child_value = -math.inf
 
-				#node_value = min(node_value, child_value)
+				#node_value = max(node_value, child_value)
 				if child_value < node_value:
 					node_value = child_value
 					move_to_play = TREE_ARRAY_MOVES[child_index]
-				evaluated_children += 1
 				if not math.isinf(child_value):
 					children_values.append(child_value)
-
+					evaluated_children += 1
+				if math.isinf(node_value):
+					node_value = -math.inf
 			for n in range(depth):
 				stats += '\t'
-			stats += '(-) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)
-			
-			if show_stats:
-				if evaluated_children != 0 and not math.isinf(node_value):
-					traceHeuristic(stats, children_values, evaluated_children, node_value)
-			
-			return node_value, move_to_play
+			stats += '(-) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)			
 
-		# even == MAX_PLAYER, (0,2,4...)
+			if show_stats and depth == 1:
+				# if evaluated_children != 0 and not math.isinf(node_value):
+				traceHeuristic(stats, children_values, evaluated_children, node_value)
+			
+			return node_value, move_to_play, evaluated_children
+
+		# even == MAX_PLAYER
 		else:
 			node_value = -math.inf
 			
@@ -384,40 +389,41 @@ def minMax(depth, parent_index, show_stats=False):
 			for c in range(NUM_CHILDREN):			
 				
 				child_index = NUM_CHILDREN * parent_index + c + 1
-				child_value, move_dump = minMax(depth + 1, child_index, show_stats)
+				child_value, move_dump, child_eval = minMaxDot(depth + 1, child_index, show_stats)
 				
+				evaluated_children += child_eval
 				nodes.append(node_value)
 				# ignore inf and nan
-				if math.isinf(node_value) and not math.isnan(child_value):
-					node_value = child_value
+				# if math.isinf(node_value) and not math.isnan(child_value):
+				# 	node_value = child_value
 				
-				if math.isinf(child_value):
-					child_value = -math.inf
+				# if math.isinf(child_value):
+				# 	child_value = math.inf
 
-				#node_value = max(node_value, child_value)			
+				#node_value = min(node_value, child_value)			
 				if child_value > node_value:
 					node_value = child_value
 					move_to_play = TREE_ARRAY_MOVES[child_index]
-				evaluated_children += 1
 				if not math.isinf(child_value):
 					children_values.append(child_value)
-
+					evaluated_children += 1
+				if math.isinf(node_value):
+					node_value = math.inf
 			for n in range(depth):
 				stats += '\t'
 			stats += '(+) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)
 			
-			if show_stats:
-				if evaluated_children != 0 and not math.isinf(node_value):
-					traceHeuristic(stats, children_values, evaluated_children, node_value)
+			if show_stats and depth == 1:
+				# if evaluated_children != 0 and not math.isinf(node_value):
+				traceHeuristic(stats, children_values, evaluated_children, node_value)
 
-			return node_value, move_to_play
+			return node_value, move_to_play, evaluated_children
 
 	# terminal node, return value
 	else:		
 		node_value = TREE_ARRAY[parent_index]
 		move_to_play = TREE_ARRAY_MOVES[parent_index]
-		return node_value, move_to_play
-
+		return node_value, move_to_play, 0
 def minMaxDot(depth, parent_index, show_stats=False):
 	stats = ""
 	evaluated_children = 0
@@ -425,7 +431,7 @@ def minMaxDot(depth, parent_index, show_stats=False):
 	move_to_play = {}
 	if depth is not TREE_HEIGHT:
 		
-		# odd == MIN_PLAYER, (1,3,5...)
+		# odd depth have to max
 		if (depth % 2) != 0:
 			node_value = -math.inf
 			
@@ -433,34 +439,36 @@ def minMaxDot(depth, parent_index, show_stats=False):
 			for c in range(NUM_CHILDREN):
 				
 				child_index = NUM_CHILDREN * parent_index + c + 1
-				child_value, move_dump = minMaxDot(depth + 1, child_index, show_stats)
+				child_value, move_dump, child_eval = minMaxDot(depth + 1, child_index, show_stats)
+				evaluated_children += child_eval
 
 				# ignore inf and nan
-				if math.isinf(node_value) and not math.isnan(child_value):
-					node_value = child_value
+				# if math.isinf(node_value) and not math.isnan(child_value):
+				# 	node_value = child_value
 				
-				if math.isinf(child_value):
-					child_value = -math.inf
+				# if math.isinf(child_value):
+				# 	child_value = -math.inf
 
 				#node_value = max(node_value, child_value)
 				if child_value > node_value:
 					node_value = child_value
 					move_to_play = TREE_ARRAY_MOVES[child_index]
-				evaluated_children += 1
 				if not math.isinf(child_value):
 					children_values.append(child_value)
-
+					evaluated_children += 1
+				if math.isinf(node_value):
+					node_value = math.inf
 			for n in range(depth):
 				stats += '\t'
 			stats += '(-) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)			
 
-			if show_stats:
-				if evaluated_children != 0 and not math.isinf(node_value):
-					traceHeuristic(stats, children_values, evaluated_children, node_value)
+			if show_stats and depth == 1:
+				# if evaluated_children != 0 and not math.isinf(node_value):
+				traceHeuristic(stats, children_values, evaluated_children, node_value)
 			
-			return node_value, move_to_play
+			return node_value, move_to_play, evaluated_children
 
-		# even == MAX_PLAYER, (0,2,4...)
+		# even == MAX_PLAYER
 		else:
 			node_value = math.inf
 			
@@ -469,39 +477,41 @@ def minMaxDot(depth, parent_index, show_stats=False):
 			for c in range(NUM_CHILDREN):			
 				
 				child_index = NUM_CHILDREN * parent_index + c + 1
-				child_value, move_dump = minMaxDot(depth + 1, child_index, show_stats)
+				child_value, move_dump, child_eval = minMaxDot(depth + 1, child_index, show_stats)
 				
+				evaluated_children += child_eval
 				nodes.append(node_value)
 				# ignore inf and nan
-				if math.isinf(node_value) and not math.isnan(child_value):
-					node_value = child_value
+				# if math.isinf(node_value) and not math.isnan(child_value):
+				# 	node_value = child_value
 				
-				if math.isinf(child_value):
-					child_value = math.inf
+				# if math.isinf(child_value):
+				# 	child_value = math.inf
 
 				#node_value = min(node_value, child_value)			
 				if child_value < node_value:
 					node_value = child_value
 					move_to_play = TREE_ARRAY_MOVES[child_index]
-				evaluated_children += 1
 				if not math.isinf(child_value):
 					children_values.append(child_value)
-
+					evaluated_children += 1
+				if math.isinf(node_value):
+					node_value = -math.inf
 			for n in range(depth):
 				stats += '\t'
 			stats += '(+) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)
 			
-			if show_stats:
-				if evaluated_children != 0 and not math.isinf(node_value):
-					traceHeuristic(stats, children_values, evaluated_children, node_value)
+			if show_stats and depth == 1:
+				# if evaluated_children != 0 and not math.isinf(node_value):
+				traceHeuristic(stats, children_values, evaluated_children, node_value)
 
-			return node_value, move_to_play
+			return node_value, move_to_play, evaluated_children
 
 	# terminal node, return value
 	else:		
 		node_value = TREE_ARRAY[parent_index]
 		move_to_play = TREE_ARRAY_MOVES[parent_index]
-		return node_value, move_to_play
+		return node_value, move_to_play, 0
 
 def interfaceBoard(board_state):
 	formatted_board = []
@@ -569,17 +579,16 @@ def getNextMove(board_state, player_type='colour', show_trace=False, show_stats=
 	root_board = interfaceBoard(board_state)
 	legal_cells = getLegalCells(root_board)
 
-	buildTree(0, 0, root_board, legal_cells)
+	buildTree(1, 0, root_board, legal_cells)
 
 	if show_trace == True:
-		# printTree(0,0)
-		asdkfjasdl = 0
+		printTree(1,0)
 
 	minmax_output = 0
 	if player_type == 'colour' or player_type == 'color' or player_type == 1:
-		minmax_output = minMax(0, 0, show_stats)
+		minmax_output = minMax(1, 0, show_stats)
 	else:
-		minmax_output = minMaxDot(0, 0, show_stats)
+		minmax_output = minMaxDot(1, 0, show_stats)
 
 	if show_stats == True:
 		# meta stats
@@ -600,7 +609,9 @@ def getNextMove(board_state, player_type='colour', show_trace=False, show_stats=
 		print(MAX_NODES - MAX_LEAVES)
 		print('Length of tree', end=': ')
 		print(len(TREE_ARRAY))
+		print('HCOUNT:{}'.format(HCOUNT))
 
+	print(minmax_output)
 	formatted_move = formatMove(minmax_output[1])
 
 	return formatted_move
@@ -617,6 +628,6 @@ for n in range(WIDTH * HEIGHT):
 	test_board.append(cell)
 
 # populate tree
-print(getNextMove(test_board, 'dot', show_stats=True))
+print(getNextMove(test_board, 'dot', show_stats=True, show_trace=traceHeuristic))
 
 
