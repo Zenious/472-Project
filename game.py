@@ -4,6 +4,7 @@ import copy
 from cell import Cell
 from board import Board
 from minimax import getNextMove
+from minimax import interfaceBoard
 
 class DoubleCard():
     def __init__(self):
@@ -192,17 +193,24 @@ Player {} : {}""".format(x+1,x%2+1,y))
             command = input("[{}'s Turn] Place your move: ".format("Player {}".format(curr_player)))
         else:
             ai_type = 0 if self.player_option == 1 else 1
-            command = getNextMove(self.board, ai_type, show_stats=False, show_trace=self.trace)
+            if self.turn >= 24:
+                command = getNextMove(self.board, ai_type, show_stats=False, show_trace=self.trace,recycling=True,prev_move=self.history[-1])
+            else:
+                command = getNextMove(self.board, ai_type, show_stats=False, show_trace=self.trace)
             # command = "0 2 A 1" # TODO place output of minimax algo here
             print("[AI's Turn] Place your move: {}".format(command))
         self.flush()
-        print ("{player} Input: {command}".format(player="Player" if curr_ai else "AI" ,command=command))
+        print ("{player} Input: {command}".format(player="Player" if not curr_ai else "AI" ,command=command))
         parsed_command = command.split(' ')
-        if not self.validate(parsed_command):
-            self.illegal_move("Invalid command!")
-            return
+       
         if parsed_command[0] == 'history':
             self.print_history()
+            return
+        if parsed_command[0] == 'export':
+            print(interfaceBoard(self.board))
+            return
+        if not self.validate(parsed_command):
+            self.illegal_move("Invalid command!")
             return
         elif parsed_command[0] == 0:
             if len(parsed_command) != 4:

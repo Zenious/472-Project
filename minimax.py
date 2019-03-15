@@ -1,4 +1,5 @@
 import math, random, copy, pickle
+from operator import itemgetter
 
 ROTATION = {
 	1: {
@@ -477,7 +478,6 @@ def minMaxDot(depth, parent_index, show_stats=False):
 					children_values.append(child_value)
 					evaluated_children += 1
 			if math.isinf(node_value):
-				print("PROBLEM CHILD:{}".format(child_index))
 				node_value = math.inf
 			for n in range(depth):
 				stats += '\t'
@@ -536,7 +536,7 @@ def minMaxDot(depth, parent_index, show_stats=False):
 
 def interfaceBoard(board_state):
 	formatted_board = []
-	# return board_state # for use to test with local code
+	return board_state # for use to test with local code
 	for n in board_state.board:
 		# Symbol
 		board_symbol = n.get_symbol()
@@ -594,56 +594,150 @@ def interfaceBoard(board_state):
 	# formatted_board = board_state.copy()
 	return formatted_board
 
-def formatMove(move):
+def formatMove(move, recycling=False, r1=None, r2=None):
 	print(move)
-	output = '0 '
-	output += str(move['rotation']) + ' '
-	output += COLUMNS[move['column']] + ' '
-	output += str(move['row'] + 1) 
+	if recycling:
+		r1_row = math.floor(r1 / WIDTH),
+		r2_row = math.floor(r2 / WIDTH),
+		r1_col = r1 % WIDTH
+		r2_col = r2 % WIDTH
+		output = "{} {} {} {} {} {} {}".format(
+			COLUMNS[r1_col], r1_row[0]+1, COLUMNS[r2_col], r2_row[0]+1,
+			move['rotation'],COLUMNS[move['column']], move['row'] + 1)
+	else:
+		output = '0 '
+		output += str(move['rotation']) + ' '
+		output += COLUMNS[move['column']] + ' '
+		output += str(move['row'] + 1) 
 	return output
 
-def getNextMove(board_state, player_type='colour', show_trace=False, show_stats=False, recycled=False):
+def parseMove(move):
+	output = {
+		'column' : 0,
+		'row' : 0,
+		'rotation' : 0
+	}
+	move_arr = move.split(" ")
+	if len(move_arr) == 4:
+		output['rotation'] = int(move_arr[1]) #Rotation
+		for index,letter in enumerate(COLUMNS):
+			if letter == move_arr[2]:
+				output['column'] = index
+				break
+		output['row'] = int(move_arr[3]) - 1 
+	else: # len == 7 A 1 A 2 2 H 1
+		output['rotation'] = int(move_arr[4]) #Rotation
+		for index,letter in enumerate(COLUMNS):
+			if letter == move_arr[5]:
+				output['column'] = index
+				break
+		output['row'] = int(move_arr[6]) - 1 
+	return output
+
+def removable(board_state, last_move):
+	removable_cells = set()
+	for cell in range(len(board_state) - 1):						
+		if isOccupiedCell(board_state, cell):
+			if ((cell + WIDTH) > (len(board_state) - 1)):
+				removable_cells.add(cell)
+				removable_cells.add(board_state[cell]['link'])
+			elif not isOccupiedCell(board_state, cell + WIDTH):
+				removable_cells.add(cell)
+				removable_cells.add(board_state[cell]['link'])
+	# Make last move tile unremovable
+	index = last_move['row']*WIDTH + last_move['column']
+	removable_cells.remove(index)
+	removable_cells.remove(board_state[index]['link'])
+	return removable_cells			
+
+def removeCell(board_state, cell):
+	board = pickle.loads(board_state)
+	cell_link = board[cell]['link']
+	board[cell_link] =  {
+		"colour": '',
+		"dot": '',
+		"link": '',
+		"link_direction": ''
+	}
+	board[cell] =  {
+		"colour": '',
+		"dot": '',
+		"link": '',
+		"link_direction": ''
+	}
+	return board
+
+def getNextMove(board_state, player_type='colour', show_trace=False, show_stats=False,recycling=False,prev_move=None):
 	clear_tree()
 	root_board = interfaceBoard(board_state)
-	legal_cells = getLegalCells(root_board)
-	print (legal_cells)
-
-	buildTree(1, 0, root_board, legal_cells)
-
-	# if show_trace == True:
-	# 	printTree(1,0)
-
 	minmax_output = 0
-	if player_type == 'colour' or player_type == 'color' or player_type == 1:
-		minmax_output = minMax(1, 0, show_stats)
-		print("HEHEHE")
+	if recycling:
+		last_move = parseMove(prev_move)
+		# get removable list of cells
+		removable_cells = removable(root_board, last_move)
+		removed = set()
+		replaced_outputs = []
+		for r in removable_cells:
+			if r in removed:
+				continue
+			dumped_board = pickle.dumps(root_board)
+			modified_board = removeCell(dumped_board, r)
+			legal_cells = getLegalCells(modified_board)
+			# add prev move as illegal
+			buildTree(1,0,modified_board, legal_cells)
+			removed.add(r)
+			removed.add(root_board[r]['link'])
+			if player_type == 'colour' or player_type == 'color' or player_type == 1:
+				local_minmax_output = minMax(1, 0, show_stats)
+			else:
+				local_minmax_output = minMaxDot(1, 0, show_stats)
+			replaced_outputs.append(local_minmax_output+(r, root_board[r]['link']))
+			clear_tree()
+		# check if this is correct.
+		print (replaced_outputs)
+		if player_type == 'colour' or player_type == 'color' or player_type == 1:
+			minmax_output = min(replaced_outputs,key=itemgetter(0))
+		else:
+			minmax_output = max(replaced_outputs,key=itemgetter(0))
+		# max(output)
 	else:
-		minmax_output = minMaxDot(1, 0, show_stats)
-		print("AHAHAHHA")
+		legal_cells = getLegalCells(root_board)
+		buildTree(1, 0, root_board, legal_cells)
 
-	if show_stats == True:
-		# meta stats
-		print('',end="\n**************\n")
-		print('Dimensions', end=': ')
-		print(str(WIDTH)+' '+str(HEIGHT))
-		print('Board Cells', end=': ')
-		print(str(WIDTH * HEIGHT))
-		print('Depth', end=': ')
-		print(str(TREE_HEIGHT))
-		print('Children per node', end=': ')
-		print(NUM_CHILDREN)
-		print('Max nodes', end=': ')
-		print(MAX_NODES)
-		print('Max leaves', end=': ')
-		print(MAX_LEAVES)
-		print('Parent Nodes', end=': ')
-		print(MAX_NODES - MAX_LEAVES)
-		print('Length of tree', end=': ')
-		print(len(TREE_ARRAY))
-		print('HCOUNT:{}'.format(HCOUNT))
+		# if show_trace == True:
+		# 	printTree(1,0)
+
+		if player_type == 'colour' or player_type == 'color' or player_type == 1:
+			minmax_output = minMax(1, 0, show_stats)
+		else:
+			minmax_output = minMaxDot(1, 0, show_stats)
+
+		if show_stats == True:
+			# meta stats
+			print('',end="\n**************\n")
+			print('Dimensions', end=': ')
+			print(str(WIDTH)+' '+str(HEIGHT))
+			print('Board Cells', end=': ')
+			print(str(WIDTH * HEIGHT))
+			print('Depth', end=': ')
+			print(str(TREE_HEIGHT))
+			print('Children per node', end=': ')
+			print(NUM_CHILDREN)
+			print('Max nodes', end=': ')
+			print(MAX_NODES)
+			print('Max leaves', end=': ')
+			print(MAX_LEAVES)
+			print('Parent Nodes', end=': ')
+			print(MAX_NODES - MAX_LEAVES)
+			print('Length of tree', end=': ')
+			print(len(TREE_ARRAY))
+			print('HCOUNT:{}'.format(HCOUNT))
 
 	print(minmax_output)
-	formatted_move = formatMove(minmax_output[1])
+	if recycling:
+		formatted_move = formatMove(minmax_output[1],recycling=True, r1=minmax_output[3], r2=minmax_output[4])
+	else:
+		formatted_move = formatMove(minmax_output[1])
 	# print(root_board)
 	return formatted_move
 
@@ -659,6 +753,9 @@ for n in range(WIDTH * HEIGHT):
 	test_board.append(cell)
 
 # populate tree
-# print(getNextMove(test_board, 'dot', show_stats=True, show_trace=traceHeuristic))
+# print(getNextMove(test_board, 'dot', show_stats=True, show_trace=True))
 
+# test Recycling
+test_board = [{'colour': 'W', 'dot': 'C', 'link': 8, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 9, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 10, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'C', 'link': 12, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'C', 'link': 14, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 15, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 0, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 1, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 2, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'F', 'link': 4, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'F', 'link': 6, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 7, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 24, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 25, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 30, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 31, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 16, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 17, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 22, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 23, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 40, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 41, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'C', 'link': 46, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 47, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 32, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 33, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'F', 'link': 38, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 39, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 56, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 57, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 62, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 63, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 48, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 49, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 54, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 55, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 72, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 73, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 79, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 64, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 65, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 71, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'C', 'link': 88, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 89, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 95, 'link_direction': '^'}, {'colour': 'W', 'dot': 'F', 'link': 80, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 81, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 87, 'link_direction': 'v'}]
+print(getNextMove(test_board,'dot',show_stats=True,recycling=True,prev_move="G 9 G 10 8 E 1")) 
 
