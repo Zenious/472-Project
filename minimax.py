@@ -60,6 +60,12 @@ HCOUNT = 0
 # Pre-generate lookup table for cell reference and dereference
 cell_lookup = {}
 
+def clear_tree():
+	global TREE_ARRAY
+	global TREE_ARRAY_MOVES
+	TREE_ARRAY = [math.nan] * MAX_NODES															# k-ary array
+	TREE_ARRAY_MOVES = [{}] * MAX_NODES	
+
 def cell_transform():
 	for index in range(HEIGHT*WIDTH):
 		column = index % (WIDTH) +1
@@ -72,25 +78,30 @@ cell_transform()
 # # #  Board manipulation code 	# # #
 # # #							# # #	
 def getLegalCells(board_state):
-	legal_cells = []
+	legal_cells = set()
 	for cell in range(len(board_state) - 1):						
 		# cell has been played, check above
-		if board_state[cell]['colour'] == 'R' or board_state[cell]['colour'] == 'W':
+		if isOccupiedCell(board_state, cell):
 			if cell + WIDTH <= len(board_state) - 1:
-				if board_state[cell + WIDTH]['colour'] != 'R' and board_state[cell + WIDTH]['colour'] != 'W':				
-					legal_cells.append(cell+WIDTH)
+				if not isOccupiedCell(board_state, cell + WIDTH):
+					legal_cells.add(cell+WIDTH)
+		# if board_state[cell]['colour'] == 'R' or board_state[cell]['colour'] == 'W':
+		# 	if cell + WIDTH <= len(board_state) - 1:
+		# 		if board_state[cell + WIDTH]['colour'] != 'R' and board_state[cell + WIDTH]['colour'] != 'W':				
+		# 			legal_cells.append(cell+WIDTH)
 			
 		# cell is in first row
-		elif cell <= WIDTH:			
-			if board_state[cell + WIDTH]['colour'] != 'R' or board_state[cell + WIDTH]['colour'] != 'W':
-				legal_cells.append(cell)				
+		elif cell < WIDTH:			
+			if not isOccupiedCell(board_state, cell+WIDTH):
+			# if board_state[cell + WIDTH]['colour'] != 'R' or board_state[cell + WIDTH]['colour'] != 'W':
+				legal_cells.add(cell)				
 
-	# double check to remove unnecessary values
-	for c in legal_cells:
-		if (c + WIDTH) in legal_cells:
-			legal_cells.remove(c + WIDTH)
+	# # double check to remove unnecessary values
+	# for c in legal_cells:
+	# 	if (c + WIDTH) in legal_cells:
+	# 		legal_cells.remove(c + WIDTH)
 
-	return legal_cells
+	return list(legal_cells)
 
 def setWidth(width):
 	WIDTH = width
@@ -285,14 +296,15 @@ def buildTree(depth, parent_index, board_state = False, legal_cells = False):
 				# returns new board if legal, False bool if illegal
 				new_board = addMoveToBoard(pickle_board, new_move, legal_cells)
 
-				if new_board != False:													
+				if new_board != False:	
+					if  new_move == {'column': 7, 'row': 8, 'rotation': 8}:	
+						print(board_state)											
 					child_index_count += 1
 
 					# add move to array
 					TREE_ARRAY_MOVES[child_index] = new_move
 
 					new_legal_cells = getLegalCells(new_board)
-
 					# immediately follow child subtree						
 					buildTree( depth + 1, child_index, new_board, new_legal_cells )
 				
@@ -376,8 +388,8 @@ def minMax(depth, parent_index, show_stats=False):
 				if not math.isinf(child_value):
 					children_values.append(child_value)
 					evaluated_children += 1
-				if math.isinf(node_value):
-					node_value = -math.inf
+			if math.isinf(node_value):
+				node_value = -math.inf
 			for n in range(depth):
 				stats += '\t'
 			stats += '(-) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)			
@@ -415,8 +427,8 @@ def minMax(depth, parent_index, show_stats=False):
 				if not math.isinf(child_value):
 					children_values.append(child_value)
 					evaluated_children += 1
-				if math.isinf(node_value):
-					node_value = math.inf
+			if math.isinf(node_value):
+				node_value = math.inf
 			for n in range(depth):
 				stats += '\t'
 			stats += '(+) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)
@@ -464,8 +476,9 @@ def minMaxDot(depth, parent_index, show_stats=False):
 				if not math.isinf(child_value):
 					children_values.append(child_value)
 					evaluated_children += 1
-				if math.isinf(node_value):
-					node_value = math.inf
+			if math.isinf(node_value):
+				print("PROBLEM CHILD:{}".format(child_index))
+				node_value = math.inf
 			for n in range(depth):
 				stats += '\t'
 			stats += '(-) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)			
@@ -503,8 +516,8 @@ def minMaxDot(depth, parent_index, show_stats=False):
 				if not math.isinf(child_value):
 					children_values.append(child_value)
 					evaluated_children += 1
-				if math.isinf(node_value):
-					node_value = -math.inf
+			if math.isinf(node_value):
+				node_value = -math.inf
 			for n in range(depth):
 				stats += '\t'
 			stats += '(+) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)
@@ -579,7 +592,6 @@ def interfaceBoard(board_state):
 		formatted_board.append(cell)
 
 	# formatted_board = board_state.copy()
-	print(formatted_board)
 	return formatted_board
 
 def formatMove(move):
@@ -591,19 +603,23 @@ def formatMove(move):
 	return output
 
 def getNextMove(board_state, player_type='colour', show_trace=False, show_stats=False, recycled=False):
+	clear_tree()
 	root_board = interfaceBoard(board_state)
 	legal_cells = getLegalCells(root_board)
+	print (legal_cells)
 
 	buildTree(1, 0, root_board, legal_cells)
 
-	if show_trace == True:
-		printTree(1,0)
+	# if show_trace == True:
+	# 	printTree(1,0)
 
 	minmax_output = 0
 	if player_type == 'colour' or player_type == 'color' or player_type == 1:
 		minmax_output = minMax(1, 0, show_stats)
+		print("HEHEHE")
 	else:
 		minmax_output = minMaxDot(1, 0, show_stats)
+		print("AHAHAHHA")
 
 	if show_stats == True:
 		# meta stats
@@ -628,7 +644,7 @@ def getNextMove(board_state, player_type='colour', show_trace=False, show_stats=
 
 	print(minmax_output)
 	formatted_move = formatMove(minmax_output[1])
-	print(root_board)
+	# print(root_board)
 	return formatted_move
 
 print('\n*****MIN MAX TESTS****')
