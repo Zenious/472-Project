@@ -194,9 +194,9 @@ Player {} : {}""".format(x+1,x%2+1,y))
         else:
             ai_type = 0 if self.player_option == 1 else 1
             if self.turn >= 24:
-                command = getNextMove(self.board, ai_type, show_stats=False, show_trace=self.trace,recycling=True,prev_move=self.history[-1])
+                command = getNextMove(self.board, ai_type, show_stats=self.trace,recycling=True,prev_move=self.history[-1])
             else:
-                command = getNextMove(self.board, ai_type, show_stats=False, show_trace=self.trace)
+                command = getNextMove(self.board, ai_type, show_stats=self.trace)
             # command = "0 2 A 1" # TODO place output of minimax algo here
             print("[AI's Turn] Place your move: {}".format(command))
         self.flush()
