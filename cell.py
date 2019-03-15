@@ -58,5 +58,5 @@ class Cell():
         self.occupied = False
         self.color = None
         self.symbol = None
-        self.link = None
+        self.link = float('-inf')
         self.variant = None

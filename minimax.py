@@ -80,7 +80,7 @@ cell_transform()
 # # #							# # #	
 def getLegalCells(board_state):
 	legal_cells = set()
-	for cell in range(len(board_state) - 1):						
+	for cell in range(len(board_state)):						
 		# cell has been played, check above
 		if isOccupiedCell(board_state, cell):
 			if cell + WIDTH <= len(board_state) - 1:
@@ -262,9 +262,8 @@ def calculateHeuristic(board_state):
 	
 # Creates a 1D k-ary tree based on TREE_HEIGHT and NUM_CHILDREN per node
 # Tree is build DEPTH FIRST
-def buildTree(depth, parent_index, board_state = False, legal_cells = False):
+def buildTree(depth, parent_index, board_state = False, legal_cells = False, recycling=False, last_move=None):
 	# not at leaf node	
-	global HCOUNT
 	if depth is not TREE_HEIGHT:						
 
 		# contents of parent node - 0 is not appropriate placeholder	 
@@ -293,13 +292,23 @@ def buildTree(depth, parent_index, board_state = False, legal_cells = False):
 					'row' : math.floor( index / WIDTH),
 					'rotation' : r
 				}
-				
+				if recycling:
+					if last_move == new_move:
+						new_board = False
 				# returns new board if legal, False bool if illegal
 				new_board = addMoveToBoard(pickle_board, new_move, legal_cells)
 
+				if recycling:
+					if last_move['column'] == new_move['column']:
+						if last_move['row'] == last_move['row']:
+							print("FALSE depth{}".format(depth))
+							print(new_move)
+							print(last_move)
+							# print(board_state)
+							new_board = False
+
 				if new_board != False:	
-					if  new_move == {'column': 7, 'row': 8, 'rotation': 8}:	
-						print(board_state)											
+					
 					child_index_count += 1
 
 					# add move to array
@@ -318,7 +327,6 @@ def buildTree(depth, parent_index, board_state = False, legal_cells = False):
 	
 	# at leaf node 
 	else:
-		HCOUNT += 1
 		heuristic = calculateHeuristic(board_state)
 		TREE_ARRAY[parent_index] = heuristic
 		
@@ -445,6 +453,7 @@ def minMax(depth, parent_index, show_stats=False):
 		node_value = TREE_ARRAY[parent_index]
 		move_to_play = TREE_ARRAY_MOVES[parent_index]
 		return node_value, move_to_play, 0
+
 def minMaxDot(depth, parent_index, show_stats=False):
 	stats = ""
 	evaluated_children = 0
@@ -536,7 +545,7 @@ def minMaxDot(depth, parent_index, show_stats=False):
 
 def interfaceBoard(board_state):
 	formatted_board = []
-	return board_state # for use to test with local code
+	# return board_state # for use to test with local code
 	for n in board_state.board:
 		# Symbol
 		board_symbol = n.get_symbol()
@@ -620,25 +629,28 @@ def parseMove(move):
 	move_arr = move.split(" ")
 	if len(move_arr) == 4:
 		output['rotation'] = int(move_arr[1]) #Rotation
-		for index,letter in enumerate(COLUMNS):
+		for index,letter in enumerate(COLUMNS,0):
 			if letter == move_arr[2]:
 				output['column'] = index
 				break
 		output['row'] = int(move_arr[3]) - 1 
 	else: # len == 7 A 1 A 2 2 H 1
 		output['rotation'] = int(move_arr[4]) #Rotation
-		for index,letter in enumerate(COLUMNS):
+		for index,letter in enumerate(COLUMNS,0):
 			if letter == move_arr[5]:
+
 				output['column'] = index
 				break
-		output['row'] = int(move_arr[6]) - 1 
+		output['row'] = int(move_arr[6]) - 1
 	return output
 
 def removable(board_state, last_move):
 	removable_cells = set()
-	for cell in range(len(board_state) - 1):						
+	print(len(board_state) )
+	for cell in range(len(board_state)):						
 		if isOccupiedCell(board_state, cell):
-			if ((cell + WIDTH) > (len(board_state) - 1)):
+			print (cell)
+			if ((cell + WIDTH) >= len(board_state)):
 				removable_cells.add(cell)
 				removable_cells.add(board_state[cell]['link'])
 			elif not isOccupiedCell(board_state, cell + WIDTH):
@@ -646,8 +658,11 @@ def removable(board_state, last_move):
 				removable_cells.add(board_state[cell]['link'])
 	# Make last move tile unremovable
 	index = last_move['row']*WIDTH + last_move['column']
-	removable_cells.remove(index)
-	removable_cells.remove(board_state[index]['link'])
+	print (index)
+	print (removable_cells)
+	removable_cells = removable_cells - {index}
+	removable_cells = removable_cells - {board_state[index]['link']}
+	print (removable_cells)
 	return removable_cells			
 
 def removeCell(board_state, cell):
@@ -670,6 +685,7 @@ def removeCell(board_state, cell):
 def getNextMove(board_state, player_type='colour', show_trace=False, show_stats=False,recycling=False,prev_move=None):
 	clear_tree()
 	root_board = interfaceBoard(board_state)
+
 	minmax_output = 0
 	if recycling:
 		last_move = parseMove(prev_move)
@@ -684,7 +700,7 @@ def getNextMove(board_state, player_type='colour', show_trace=False, show_stats=
 			modified_board = removeCell(dumped_board, r)
 			legal_cells = getLegalCells(modified_board)
 			# add prev move as illegal
-			buildTree(1,0,modified_board, legal_cells)
+			buildTree(1,0, modified_board, legal_cells, recycling=True, last_move=last_move)
 			removed.add(r)
 			removed.add(root_board[r]['link'])
 			if player_type == 'colour' or player_type == 'color' or player_type == 1:
@@ -756,6 +772,7 @@ for n in range(WIDTH * HEIGHT):
 # print(getNextMove(test_board, 'dot', show_stats=True, show_trace=True))
 
 # test Recycling
-test_board = [{'colour': 'W', 'dot': 'C', 'link': 8, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 9, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 10, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'C', 'link': 12, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'C', 'link': 14, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 15, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 0, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 1, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 2, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'F', 'link': 4, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'F', 'link': 6, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 7, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 24, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 25, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 30, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 31, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 16, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 17, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 22, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 23, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 40, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 41, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'C', 'link': 46, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 47, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 32, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 33, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'F', 'link': 38, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 39, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 56, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 57, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 62, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 63, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 48, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 49, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 54, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 55, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 72, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 73, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 79, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 64, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 65, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 71, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'C', 'link': 88, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 89, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 95, 'link_direction': '^'}, {'colour': 'W', 'dot': 'F', 'link': 80, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 81, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 87, 'link_direction': 'v'}]
-print(getNextMove(test_board,'dot',show_stats=True,recycling=True,prev_move="G 9 G 10 8 E 1")) 
+# test_board = [{'colour': 'W', 'dot': 'C', 'link': 8, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 9, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 10, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'C', 'link': 12, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'C', 'link': 14, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 15, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 0, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 1, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 2, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'F', 'link': 4, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'F', 'link': 6, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 7, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 24, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 25, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 30, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 31, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 16, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 17, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 22, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 23, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 40, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 41, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'C', 'link': 46, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 47, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 32, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 33, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'F', 'link': 38, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 39, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 56, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 57, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 62, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 63, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 48, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 49, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 54, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 55, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 72, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 73, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 79, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 64, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 65, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 71, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'C', 'link': 88, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 89, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 95, 'link_direction': '^'}, {'colour': 'W', 'dot': 'F', 'link': 80, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 81, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 87, 'link_direction': 'v'}]
+test_board = [{'colour': 'W', 'dot': 'C', 'link': 8, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 9, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 14, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 15, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 0, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 1, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 6, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 7, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 24, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 25, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 30, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 31, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 16, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 17, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 22, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 23, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 40, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 41, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 46, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 47, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 32, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 33, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 38, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 39, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 56, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 57, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 62, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 63, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 48, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 49, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 54, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 55, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'C', 'link': 72, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 73, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 78, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 79, 'link_direction': '^'}, {'colour': 'R', 'dot': 'F', 'link': 64, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 65, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 70, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 71, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'C', 'link': 88, 'link_direction': '^'}, {'colour': 'W', 'dot': 'C', 'link': 89, 'link_direction': '^'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'R', 'dot': 'C', 'link': 94, 'link_direction': '^'}, {'colour': 'R', 'dot': 'C', 'link': 95, 'link_direction': '^'}, {'colour': 'W', 'dot': 'F', 'link': 80, 'link_direction': 'v'}, {'colour': 'R', 'dot': 'F', 'link': 81, 'link_direction': 'v'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': '', 'dot': '', 'link': '', 'link_direction': '.'}, {'colour': 'W', 'dot': 'F', 'link': 86, 'link_direction': 'v'}, {'colour': 'W', 'dot': 'F', 'link': 87, 'link_direction': 'v'}]
+# print(getNextMove(test_board,'dot',show_stats=True,recycling=True,prev_move="H 11 H 12 8 H 11")) 
 
