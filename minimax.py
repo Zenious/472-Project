@@ -54,8 +54,18 @@ NUM_CHILDREN = len(ROTATION) * WIDTH														# 8 rotations * maximum number
 MAX_LEAVES = int(math.pow(NUM_CHILDREN, TREE_HEIGHT))										# number of nodes with a value
 MAX_NODES = int((math.pow(NUM_CHILDREN, TREE_HEIGHT + 1) - 1 ) / ( NUM_CHILDREN - 1 ))		# total calculated nodes of tree
 TREE_ARRAY = [math.nan] * MAX_NODES															# k-ary array
-TREE_ARRAY_MOVES = [{}] * MAX_NODES																
+TREE_ARRAY_MOVES = [{}] * MAX_NODES	
+															
+# Pre-generate lookup table for cell reference and dereference
+cell_lookup = {}
 
+def cell_transform():
+	for index in range(HEIGHT*WIDTH):
+		column = index % (WIDTH) +1
+		row = ((int) (index /(WIDTH)))
+		coordinates = int(str(row) + str(column))
+		cell_lookup[index] = coordinates
+cell_transform()
 # # #							# # #
 # # #  Board manipulation code 	# # #
 # # #							# # #	
@@ -208,9 +218,11 @@ def calculateHeuristic(board_state):
 	score = 0
 
 	for index,cell in enumerate(board_state):
-		column = index % (WIDTH) +1
-		row = ((int) (index /(WIDTH)))
-		coordinates = int(str(row) + str(column))
+		# column = index % (WIDTH) +1
+		# row = ((int) (index /(WIDTH)))
+		# coordinates = int(str(row) + str(column))
+
+		coordinates = cell_lookup[index]
 		if cell['colour'] == 'R':
 			if cell['dot'] == 'C':
 				score -= 1.5*coordinates
@@ -493,7 +505,7 @@ def minMaxDot(depth, parent_index, show_stats=False):
 
 def interfaceBoard(board_state):
 	formatted_board = []
-	# return board_state # for use to test with local code
+	return board_state # for use to test with local code
 	for n in board_state.board:
 		# Symbol
 		board_symbol = n.get_symbol()
@@ -605,6 +617,6 @@ for n in range(WIDTH * HEIGHT):
 	test_board.append(cell)
 
 # populate tree
-# print(getNextMove(test_board, 'dot', show_stats=True))
+print(getNextMove(test_board, 'dot', show_stats=True))
 
 
