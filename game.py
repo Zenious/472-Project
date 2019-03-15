@@ -87,7 +87,7 @@ Option: """
             if self.history:
                 print ("Turn {}: Move placed is {}".format(self.turn, self.history[-1]))
             print (self.board)
-            if self.turn == 60:
+            if self.turn == 40:
                 break
             self.command_parser()
             self.prev_board = copy.deepcopy(self.board)
