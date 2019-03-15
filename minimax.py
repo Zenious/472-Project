@@ -67,6 +67,7 @@ def cell_transform():
 		coordinates = int(str(row) + str(column))
 		cell_lookup[index] = coordinates
 cell_transform()
+
 # # #							# # #
 # # #  Board manipulation code 	# # #
 # # #							# # #	
@@ -153,6 +154,10 @@ def addMoveToBoard(parent_board, move, legal_cells):
 				#print('[Illegal] link right not legal')
 				return False
 
+		# check if cell is occupied
+		if isOccupiedCell(board, index) or isOccupiedCell(board, link):
+			return False
+
 		# updateLegalCells(legal_cells, index, link)
 		if ROTATION[rotation]['link'] == 'right':			
 			updateCell( board ,index, C1['colour'], C1['dot'], link, '>' )  
@@ -161,6 +166,9 @@ def addMoveToBoard(parent_board, move, legal_cells):
 			updateCell( board, index, C1['colour'], C1['dot'], link, '^' )
 			updateCell( board, link, C2['colour'], C2['dot'], index, 'v' )
 		return board
+
+def isOccupiedCell(board, cell):
+	return board[cell]['colour'] != "" or board[cell]['dot'] != ""
 
 def updateCell(board, cell, colour, dot, link, link_direction):
 	board[cell]['colour'] = colour
@@ -515,15 +523,15 @@ def minMaxDot(depth, parent_index, show_stats=False):
 
 def interfaceBoard(board_state):
 	formatted_board = []
-	return board_state # for use to test with local code
+	# return board_state # for use to test with local code
 	for n in board_state.board:
 		# Symbol
 		board_symbol = n.get_symbol()
 		dot = ""
 		if board_symbol == '\u25E6' :
-			dot = 'F'
+			dot = 'C'
 		elif board_symbol == '\u2022' :
-			dot =  'W'
+			dot =  'F'
 
 		# Colour
 		board_color = n.get_color()
@@ -551,9 +559,15 @@ def interfaceBoard(board_state):
 		if cell_variant == None:
 			cell_link = ""
 		elif cell_variant % 2 == 1:
-			cell_link = cell_index+1 
+			if cell_direction == 'left':
+				cell_link = cell_index-1
+			else:
+				cell_link = cell_index+1 
 		else:
-			cell_link = cell_index+8
+			if cell_direction == 'down':
+				cell_link = cell_index-8
+			else:
+				cell_link = cell_index+8
 
 
 		cell = {
@@ -565,6 +579,7 @@ def interfaceBoard(board_state):
 		formatted_board.append(cell)
 
 	# formatted_board = board_state.copy()
+	print(formatted_board)
 	return formatted_board
 
 def formatMove(move):
@@ -613,7 +628,7 @@ def getNextMove(board_state, player_type='colour', show_trace=False, show_stats=
 
 	print(minmax_output)
 	formatted_move = formatMove(minmax_output[1])
-
+	print(root_board)
 	return formatted_move
 
 print('\n*****MIN MAX TESTS****')
@@ -628,6 +643,6 @@ for n in range(WIDTH * HEIGHT):
 	test_board.append(cell)
 
 # populate tree
-print(getNextMove(test_board, 'dot', show_stats=True, show_trace=traceHeuristic))
+# print(getNextMove(test_board, 'dot', show_stats=True, show_trace=traceHeuristic))
 
 
