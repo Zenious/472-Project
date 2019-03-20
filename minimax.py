@@ -1,6 +1,7 @@
 import math, random, copy, pickle
 from operator import itemgetter
-
+from heuristics import naive_heuristic
+import numpy as np
 ROTATION = {
 	1: {
 		'C1' : {'colour':'R','dot':'F'},
@@ -236,28 +237,8 @@ def setMaxPlayer(player_type):
 		MIN_PLAYER = 'colour'
 
 def calculateHeuristic(board_state):
-	score = 0
 
-	for index,cell in enumerate(board_state):
-		# column = index % (WIDTH) +1
-		# row = ((int) (index /(WIDTH)))
-		# coordinates = int(str(row) + str(column))
-
-		coordinates = cell_lookup[index]
-		if cell['colour'] == 'R':
-			if cell['dot'] == 'C':
-				score -= 1.5*coordinates
-			if cell['dot'] == 'F':
-				score -= 2*coordinates
-		elif cell['colour'] == 'W':
-			if cell['dot'] == 'C':
-				score += coordinates
-			if cell['dot'] == 'F':
-				score += 3*coordinates
-		else:
-			continue
-
-	# score = random.randint(-100,100)
+	score = naive_heuristic(board_state, cell_lookup)
 	return score
 	
 # Creates a 1D k-ary tree based on TREE_HEIGHT and NUM_CHILDREN per node
