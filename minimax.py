@@ -1,6 +1,6 @@
 import math, random, copy, pickle
 from operator import itemgetter
-from heuristics import naive_heuristic
+from heuristics import zw_heuristic
 
 ROTATION = {
 	1: {
@@ -243,8 +243,8 @@ def setMaxPlayer(player_type):
 
 def calculateHeuristic(board_state, player_type):
 
-	# score = zw_heuristic(board_state, cell_lookup)
-	score = naive_heuristic(board_state, cell_lookup)
+	score = zw_heuristic(board_state, cell_lookup)
+	# score = naive_heuristic(board_state, cell_lookup)
 	if player_type == 0: 
 		return score
 	else:

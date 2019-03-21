@@ -243,6 +243,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
 
                 if self.board == self.prev_board:
                     self.illegal_move("Move did not change to the board")
+                    self.turn -= 1
                     return
                 self.prev_move = parsed_command
                 self.history.append(command)
