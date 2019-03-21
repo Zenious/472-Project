@@ -1,6 +1,6 @@
 import math, random, copy, pickle
 from operator import itemgetter
-from heuristics import zw_heuristic, naive_heuristic
+from heuristics import naive_heuristic
 
 ROTATION = {
 	1: {
@@ -112,7 +112,7 @@ def setHeight(height):
 	HEIGHT = height
 
 # missing recycled move code
-def addMoveToBoard(parent_board, move, legal_cells):
+def addMoveToBoard(parent_board, move, legal_cells, original):
 		# board = copy.deepcopy(parent_board)
 		board = pickle.loads(parent_board)
 		column = move['column']
@@ -178,6 +178,11 @@ def addMoveToBoard(parent_board, move, legal_cells):
 		elif ROTATION[rotation]['link'] == 'up':
 			updateCell( board, index, C1['colour'], C1['dot'], link, '^' )
 			updateCell( board, link, C2['colour'], C2['dot'], index, 'v' )
+		
+		if original:
+			if board == original:
+				return False
+		
 		return board
 
 def isOccupiedCell(board, cell):
@@ -247,7 +252,7 @@ def calculateHeuristic(board_state, player_type):
 
 # Creates a 1D k-ary tree based on TREE_HEIGHT and NUM_CHILDREN per node
 # Tree is build DEPTH FIRST
-def buildTree(depth, parent_index, board_state = False, legal_cells = False, recycling=False, last_move=None, player_type=0):
+def buildTree(depth, parent_index, board_state = False, legal_cells = False, recycling=False, last_move=None, player_type=0, original=False):
 	# not at leaf node	
 	if depth is not TREE_HEIGHT:						
 
@@ -281,15 +286,15 @@ def buildTree(depth, parent_index, board_state = False, legal_cells = False, rec
 					if last_move == new_move:
 						new_board = False
 				# returns new board if legal, False bool if illegal
-				new_board = addMoveToBoard(pickle_board, new_move, legal_cells)
+				new_board = addMoveToBoard(pickle_board, new_move, legal_cells, original)
 
 				if recycling:
 					if last_move['column'] == new_move['column']:
 						if last_move['row'] == last_move['row']:
-							print("FALSE depth{}".format(depth))
-							print(new_move)
-							print(last_move)
-							# print(board_state)
+							# print("FALSE depth{}".format(depth))
+							# print(new_move)
+							# print(last_move)
+							# print(board_state)ho
 							new_board = False
 
 				if new_board != False:	
@@ -386,10 +391,11 @@ def minMax(depth, parent_index, show_stats=False, recycling=False):
 				stats += '\t'
 			stats += '(-) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)			
 
-			if show_stats and depth == 1:
+			if depth == 1:
 				# if evaluated_children != 0 and not math.isinf(node_value):
 				if not recycling:
-					traceHeuristic(stats, children_values, evaluated_children, node_value)
+					if show_stats:
+						traceHeuristic(stats, children_values, evaluated_children, node_value)
 				return node_value, move_to_play, evaluated_children, children_values
 
 			return node_value, move_to_play, evaluated_children
@@ -427,10 +433,11 @@ def minMax(depth, parent_index, show_stats=False, recycling=False):
 				stats += '\t'
 			stats += '(+) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)
 			
-			if show_stats and depth == 1:
+			if depth == 1:
 				# if evaluated_children != 0 and not math.isinf(node_value):
 				if not recycling:
-					traceHeuristic(stats, children_values, evaluated_children, node_value)
+					if show_stats:
+						traceHeuristic(stats, children_values, evaluated_children, node_value)
 				return node_value, move_to_play, evaluated_children, children_values
 			return node_value, move_to_play, evaluated_children
 
@@ -592,7 +599,7 @@ def getNextMove(board_state, player_type=1, show_stats=False,recycling=False,pre
 			modified_board = removeCell(dumped_board, r)
 			legal_cells = getLegalCells(modified_board)
 			# add prev move as illegal
-			buildTree(1,0, modified_board, legal_cells, recycling=True, last_move=last_move, player_type=player_type)
+			buildTree(1,0, modified_board, legal_cells, recycling=True, last_move=last_move, player_type=player_type, original=root_board)
 			removed.add(r)
 			removed.add(root_board[r]['link'])
 			if player_type == 'colour' or player_type == 'color' or player_type == 1:
@@ -611,7 +618,8 @@ def getNextMove(board_state, player_type=1, show_stats=False,recycling=False,pre
 		for output in replaced_outputs:
 			evaluated_children += output[2]
 			children_values.extend(output[3])
-		traceHeuristic("", children_values, evaluated_children, minmax_output[0])
+		if show_stats:
+			traceHeuristic("", children_values, evaluated_children, minmax_output[0])
 		# max(output)
 	else:
 		legal_cells = getLegalCells(root_board)
@@ -624,7 +632,6 @@ def getNextMove(board_state, player_type=1, show_stats=False,recycling=False,pre
 			minmax_output = minMax(1, 0, show_stats)
 		else:
 			minmax_output = minMax(1, 0, show_stats)
-
 		if show_stats == True:
 			# meta stats
 			print('',end="\n**************\n")
