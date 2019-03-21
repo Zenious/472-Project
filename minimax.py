@@ -1,7 +1,7 @@
 import math, random, copy, pickle
 from operator import itemgetter
 from heuristics import naive_heuristic
-import numpy as np
+
 ROTATION = {
 	1: {
 		'C1' : {'colour':'R','dot':'F'},
@@ -345,15 +345,14 @@ def traceHeuristic(stats, children_values, evaluated_children, parent_node_value
 		file.write('\n')
 
 	
-# returns value of leaf root node
-def minMax(depth, parent_index, show_stats=False, recycling=False):
+def minMax(depth, parent_index, show_stats=False):
 	stats = ""
 	evaluated_children = 0
 	children_values = []
 	move_to_play = {}
 	if depth is not TREE_HEIGHT:
 		
-		# odd depth have to max
+		# odd == MIN_PLAYER, (1,3,5...)
 		if (depth % 2) != 0:
 			node_value = math.inf
 			
@@ -361,29 +360,28 @@ def minMax(depth, parent_index, show_stats=False, recycling=False):
 			for c in range(NUM_CHILDREN):
 				
 				child_index = NUM_CHILDREN * parent_index + c + 1
-				child_value, move_dump, child_eval = minMaxDot(depth + 1, child_index, show_stats)
+				child_value, move_dump, child_eval = minMax(depth + 1, child_index, show_stats)
 				evaluated_children += child_eval
 
 				# ignore inf and nan
-				# if math.isinf(node_value) and not math.isnan(child_value):
-				# 	node_value = child_value
+				if math.isinf(node_value) and not math.isnan(child_value):
+					node_value = child_value
 				
-				# if math.isinf(child_value):
-				# 	child_value = -math.inf
+				if math.isinf(child_value):
+					child_value = math.inf
 
-				#node_value = max(node_value, child_value)
+				#node_value = min(node_value, child_value)
 				if child_value < node_value:
 					node_value = child_value
 					move_to_play = TREE_ARRAY_MOVES[child_index]
-				if not math.isinf(child_value):
-					children_values.append(child_value)
 					evaluated_children += 1
-			if math.isinf(node_value):
-				node_value = -math.inf
+					if not math.isinf(child_value):
+						children_values.append(child_value)
+
 			for n in range(depth):
 				stats += '\t'
-			stats += '(-) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)			
-
+			stats += '(-) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)
+			
 			if show_stats and depth == 1:
 				# if evaluated_children != 0 and not math.isinf(node_value):
 				if not recycling:
@@ -392,7 +390,7 @@ def minMax(depth, parent_index, show_stats=False, recycling=False):
 
 			return node_value, move_to_play, evaluated_children
 
-		# even == MAX_PLAYER
+		# even == MAX_PLAYER, (0,2,4...)
 		else:
 			node_value = -math.inf
 			
@@ -401,26 +399,25 @@ def minMax(depth, parent_index, show_stats=False, recycling=False):
 			for c in range(NUM_CHILDREN):			
 				
 				child_index = NUM_CHILDREN * parent_index + c + 1
-				child_value, move_dump, child_eval = minMaxDot(depth + 1, child_index, show_stats)
-				
+				child_value, move_dump, child_eval = minMax(depth + 1, child_index, show_stats)
 				evaluated_children += child_eval
+
 				nodes.append(node_value)
 				# ignore inf and nan
-				# if math.isinf(node_value) and not math.isnan(child_value):
-				# 	node_value = child_value
+				if math.isinf(node_value) and not math.isnan(child_value):
+					node_value = child_value
 				
-				# if math.isinf(child_value):
-				# 	child_value = math.inf
+				if math.isinf(child_value):
+					child_value = -math.inf
 
-				#node_value = min(node_value, child_value)			
+				#node_value = max(node_value, child_value)			
 				if child_value > node_value:
 					node_value = child_value
 					move_to_play = TREE_ARRAY_MOVES[child_index]
-				if not math.isinf(child_value):
-					children_values.append(child_value)
 					evaluated_children += 1
-			if math.isinf(node_value):
-				node_value = math.inf
+					if not math.isinf(child_value):
+						children_values.append(child_value)
+
 			for n in range(depth):
 				stats += '\t'
 			stats += '(+) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)
@@ -430,7 +427,6 @@ def minMax(depth, parent_index, show_stats=False, recycling=False):
 				if not recycling:
 					traceHeuristic(stats, children_values, evaluated_children, node_value)
 				return node_value, move_to_play, evaluated_children, children_values
-
 			return node_value, move_to_play, evaluated_children
 
 	# terminal node, return value
@@ -668,6 +664,7 @@ def removeCell(board_state, cell):
 def getNextMove(board_state, player_type='colour', show_stats=False,recycling=False,prev_move=None):
 	clear_tree()
 	root_board = interfaceBoard(board_state)
+	print(player_type)
 
 	minmax_output = 0
 	if recycling:
