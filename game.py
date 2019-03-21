@@ -256,7 +256,7 @@ Player {} : {}""".format(x+1,x%2+1,y))
             x = self.tabulate(cell_num, direction)
             for y,z in enumerate(x):
                 if list(filter(lambda x: z%x==0, winning_nums)):
-                    # print("Possible win with {}".format(y))
+                    # print("Possible win with {}".format(direction))
                     wins[y] = 1
         return wins
 
@@ -310,15 +310,15 @@ Player {} : {}""".format(x+1,x%2+1,y))
                 curr_cell_num = extend_cell_num-8*x
             elif direction == 'horizontal':
                 curr_cell_num = extend_cell_num-x
-                if int(curr_cell_num / 8) != int(extend_cell_num / 8):
+                if int(curr_cell_num / 8) != int(cell_num / 8):
                     continue
             elif direction == 'diag-left':
                 curr_cell_num = extend_cell_num-8*x-x
-                if int(curr_cell_num / 8) != int(extend_cell_num / 8)-x:
+                if int(curr_cell_num / 8) != int(cell_num / 8)+3-x:
                     continue
             elif direction == 'diag-right':
-                curr_cell_num = extend_cell_num+8*x+x 
-                if int(curr_cell_num / 8) != int(extend_cell_num / 8)-x:
+                curr_cell_num = extend_cell_num-8*x+x 
+                if int(curr_cell_num / 8) != int(cell_num / 8)+3-x:
                     continue
 
             # check if out of board
