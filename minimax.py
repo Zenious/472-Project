@@ -1,6 +1,6 @@
 import math, random, copy, pickle
 from operator import itemgetter
-from heuristics import naive_heuristic
+from heuristics import zw_heuristic, naive_heuristic
 
 ROTATION = {
 	1: {
@@ -236,14 +236,18 @@ def setMaxPlayer(player_type):
 		MAX_PLAYER = 'dot'
 		MIN_PLAYER = 'colour'
 
-def calculateHeuristic(board_state):
+def calculateHeuristic(board_state, player_type):
 
+	# score = zw_heuristic(board_state, cell_lookup)
 	score = naive_heuristic(board_state, cell_lookup)
-	return score
-	
+	if player_type == 0: 
+		return score
+	else:
+		return score * -1
+
 # Creates a 1D k-ary tree based on TREE_HEIGHT and NUM_CHILDREN per node
 # Tree is build DEPTH FIRST
-def buildTree(depth, parent_index, board_state = False, legal_cells = False, recycling=False, last_move=None):
+def buildTree(depth, parent_index, board_state = False, legal_cells = False, recycling=False, last_move=None, player_type=0):
 	# not at leaf node	
 	if depth is not TREE_HEIGHT:						
 
@@ -308,7 +312,7 @@ def buildTree(depth, parent_index, board_state = False, legal_cells = False, rec
 	
 	# at leaf node 
 	else:
-		heuristic = calculateHeuristic(board_state)
+		heuristic = calculateHeuristic(board_state, player_type)
 		TREE_ARRAY[parent_index] = heuristic
 		
 
@@ -344,98 +348,7 @@ def traceHeuristic(stats, children_values, evaluated_children, parent_node_value
 			file.write(str(node)+'\n')
 		file.write('\n')
 
-	
-def minMax(depth, parent_index, show_stats=False):
-	stats = ""
-	evaluated_children = 0
-	children_values = []
-	move_to_play = {}
-	if depth is not TREE_HEIGHT:
-		
-		# odd == MIN_PLAYER, (1,3,5...)
-		if (depth % 2) != 0:
-			node_value = math.inf
-			
-			# check value of each child
-			for c in range(NUM_CHILDREN):
-				
-				child_index = NUM_CHILDREN * parent_index + c + 1
-				child_value, move_dump, child_eval = minMax(depth + 1, child_index, show_stats)
-				evaluated_children += child_eval
-
-				# ignore inf and nan
-				if math.isinf(node_value) and not math.isnan(child_value):
-					node_value = child_value
-				
-				if math.isinf(child_value):
-					child_value = math.inf
-
-				#node_value = min(node_value, child_value)
-				if child_value < node_value:
-					node_value = child_value
-					move_to_play = TREE_ARRAY_MOVES[child_index]
-					evaluated_children += 1
-					if not math.isinf(child_value):
-						children_values.append(child_value)
-
-			for n in range(depth):
-				stats += '\t'
-			stats += '(-) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)
-			
-			if show_stats and depth == 1:
-				# if evaluated_children != 0 and not math.isinf(node_value):
-				if not recycling:
-					traceHeuristic(stats, children_values, evaluated_children, node_value)
-				return node_value, move_to_play, evaluated_children, children_values
-
-			return node_value, move_to_play, evaluated_children
-
-		# even == MAX_PLAYER, (0,2,4...)
-		else:
-			node_value = -math.inf
-			
-			# check value of each child
-			nodes =[]
-			for c in range(NUM_CHILDREN):			
-				
-				child_index = NUM_CHILDREN * parent_index + c + 1
-				child_value, move_dump, child_eval = minMax(depth + 1, child_index, show_stats)
-				evaluated_children += child_eval
-
-				nodes.append(node_value)
-				# ignore inf and nan
-				if math.isinf(node_value) and not math.isnan(child_value):
-					node_value = child_value
-				
-				if math.isinf(child_value):
-					child_value = -math.inf
-
-				#node_value = max(node_value, child_value)			
-				if child_value > node_value:
-					node_value = child_value
-					move_to_play = TREE_ARRAY_MOVES[child_index]
-					evaluated_children += 1
-					if not math.isinf(child_value):
-						children_values.append(child_value)
-
-			for n in range(depth):
-				stats += '\t'
-			stats += '(+) for node ['+str(parent_index)+'] = ['+str(node_value)+'] \t--> ' + str(move_to_play)
-			
-			if show_stats and depth == 1:
-				# if evaluated_children != 0 and not math.isinf(node_value):
-				if not recycling:
-					traceHeuristic(stats, children_values, evaluated_children, node_value)
-				return node_value, move_to_play, evaluated_children, children_values
-			return node_value, move_to_play, evaluated_children
-
-	# terminal node, return value
-	else:		
-		node_value = TREE_ARRAY[parent_index]
-		move_to_play = TREE_ARRAY_MOVES[parent_index]
-		return node_value, move_to_play, 0
-
-def minMaxDot(depth, parent_index, show_stats=False, recycling=False):
+def minMax(depth, parent_index, show_stats=False, recycling=False):
 	stats = ""
 	evaluated_children = 0
 	children_values = []
@@ -450,7 +363,7 @@ def minMaxDot(depth, parent_index, show_stats=False, recycling=False):
 			for c in range(NUM_CHILDREN):
 				
 				child_index = NUM_CHILDREN * parent_index + c + 1
-				child_value, move_dump, child_eval = minMaxDot(depth + 1, child_index, show_stats)
+				child_value, move_dump, child_eval = minMax(depth + 1, child_index, show_stats)
 				evaluated_children += child_eval
 
 				# ignore inf and nan
@@ -490,7 +403,7 @@ def minMaxDot(depth, parent_index, show_stats=False, recycling=False):
 			for c in range(NUM_CHILDREN):			
 				
 				child_index = NUM_CHILDREN * parent_index + c + 1
-				child_value, move_dump, child_eval = minMaxDot(depth + 1, child_index, show_stats)
+				child_value, move_dump, child_eval = minMax(depth + 1, child_index, show_stats)
 				
 				evaluated_children += child_eval
 				nodes.append(node_value)
@@ -661,10 +574,9 @@ def removeCell(board_state, cell):
 	}
 	return board
 
-def getNextMove(board_state, player_type='colour', show_stats=False,recycling=False,prev_move=None):
+def getNextMove(board_state, player_type=1, show_stats=False,recycling=False,prev_move=None):
 	clear_tree()
 	root_board = interfaceBoard(board_state)
-	print(player_type)
 
 	minmax_output = 0
 	if recycling:
@@ -680,13 +592,13 @@ def getNextMove(board_state, player_type='colour', show_stats=False,recycling=Fa
 			modified_board = removeCell(dumped_board, r)
 			legal_cells = getLegalCells(modified_board)
 			# add prev move as illegal
-			buildTree(1,0, modified_board, legal_cells, recycling=True, last_move=last_move)
+			buildTree(1,0, modified_board, legal_cells, recycling=True, last_move=last_move, player_type=player_type)
 			removed.add(r)
 			removed.add(root_board[r]['link'])
 			if player_type == 'colour' or player_type == 'color' or player_type == 1:
 				local_minmax_output = minMax(1, 0, show_stats, True)
 			else:
-				local_minmax_output = minMaxDot(1, 0, show_stats, True)
+				local_minmax_output = minMax(1, 0, show_stats, True)
 			replaced_outputs.append(local_minmax_output+(r, root_board[r]['link']))
 			clear_tree()
 		# check if this is correct.
@@ -704,14 +616,14 @@ def getNextMove(board_state, player_type='colour', show_stats=False,recycling=Fa
 	else:
 		legal_cells = getLegalCells(root_board)
 		buildTree(1, 0, root_board, legal_cells)
-
+		# printTree(1,0)
 		# if show_trace == True:
 		# 	printTree(1,0)
 
 		if player_type == 'colour' or player_type == 'color' or player_type == 1:
 			minmax_output = minMax(1, 0, show_stats)
 		else:
-			minmax_output = minMaxDot(1, 0, show_stats)
+			minmax_output = minMax(1, 0, show_stats)
 
 		if show_stats == True:
 			# meta stats
