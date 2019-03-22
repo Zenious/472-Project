@@ -507,8 +507,16 @@ def interfaceBoard(board_state):
 	# formatted_board = board_state.copy()
 	return formatted_board
 
-def formatMove(move, recycling=False, r1=None, r2=None):
+def formatMove(move, recycling=False, r1=None, r2=None, board=False):
 	print(move)
+	if not move:
+		array = getLegalCells(board)
+		index = array[random.randint(0, len(array)-1)]
+		move = {
+		'column' : index % WIDTH,
+		'row' : math.floor( index / WIDTH),
+		'rotation' : random.randint(0,8)
+		}
 	if recycling:
 		r1_row = math.floor(r1 / WIDTH),
 		r2_row = math.floor(r2 / WIDTH),
@@ -655,9 +663,9 @@ def getNextMove(board_state, player_type=1, show_stats=False,recycling=False,pre
 
 	print(minmax_output)
 	if recycling:
-		formatted_move = formatMove(minmax_output[1],recycling=True, r1=minmax_output[4], r2=minmax_output[5])
+		formatted_move = formatMove(minmax_output[1],recycling=True, r1=minmax_output[4], r2=minmax_output[5],board=root_board)
 	else:
-		formatted_move = formatMove(minmax_output[1])
+		formatted_move = formatMove(minmax_output[1],board=root_board)
 	# print(root_board)
 	return formatted_move
 
